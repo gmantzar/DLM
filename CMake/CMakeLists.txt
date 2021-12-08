@@ -10,11 +10,19 @@ SET(PROJECT_NAME "CATS")
 
 project(${PROJECT_NAME})
 # SET PATHS #
-SET(CATS_DESTINATION "/home/dmihaylov/Apps/CATS")#where to install CATS. Folder must exist.
-SET(ROOT_PATH "/home/dmihaylov/Apps/root-6.14.00/obj")#path to ROOT
-SET(GSL_INCLUDE "/usr/include/gsl")#where are all GSL related .h files
-SET(GSL_LIB "/usr/lib")#where are the GSL .a and .so files
-SET(CATS_FOLDER "/home/dmihaylov/Dudek_Ubuntu/DLM_GitHub")#where is the CATS main folder located
+SET(CATS_DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/..")#where to install CATS. Folder must exist.
+#SET(ROOT_PATH "/home/dmihaylov/Apps/root-6.14.00/obj")#path to ROOT
+#SET(GSL_INCLUDE "/usr/include/gsl")#where are all GSL related .h files
+execute_process (
+	COMMAND bash -c "printf $(whereis gsl | cut -d' ' -f2)"
+	OUTPUT_VARIABLE GSL_INCLUDE
+)
+#SET(GSL_LIB "/usr/lib")#where are the GSL .a and .so files
+execute_process (
+	COMMAND bash -c "printf $(whereis lib | cut -d' ' -f2)"
+	OUTPUT_VARIABLE GSL_LIB
+)
+SET(CATS_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/../DLM")#where is the CATS main folder located
 # DO NOT CHANGE THE REST #
 
 SET(VERSION_MAJOR 3)
@@ -58,8 +66,8 @@ add_library(CATSdev	SHARED		${CATS_FOLDER}/CATS_Extentions/DLM_CkDecomposition.c
 					${CATS_FOLDER}/DLM_RootTools/DLM_RootFit.cpp)
 
 
-execute_process(COMMAND bash -c "${ROOT_PATH}/bin/root-config --cflags" OUTPUT_VARIABLE CFLAGS)
-execute_process(COMMAND bash -c "${ROOT_PATH}/bin/root-config --libs" OUTPUT_VARIABLE LIBS)
+execute_process(COMMAND bash -c "/usr/bin/root-config --cflags" OUTPUT_VARIABLE CFLAGS)
+execute_process(COMMAND bash -c "/usr/bin/root-config --libs" OUTPUT_VARIABLE LIBS)
 
 string(REGEX REPLACE "\n$" "" CFLAGS "${CFLAGS}")
 string(REGEX REPLACE "\n$" "" LIBS "${LIBS}")
