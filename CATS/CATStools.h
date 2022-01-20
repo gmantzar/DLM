@@ -46,6 +46,7 @@ public:
     ~CatsLorentzVector();
 
     void Boost(const CatsLorentzVector& boostVec);
+    void BoostBack(const CatsLorentzVector& boostVec);
     //CatsLorentzVector GetBoost(const CatsLorentzVector& boostVec);
 
     double GetR() const;
@@ -76,11 +77,24 @@ public:
     double GetPz() const;
     double GetPtheta() const;
     double GetPphi() const;
+    double Gamma() const;
+    double Beta() const;
+    double BetaX() const;
+    double BetaY() const;
+    double BetaZ() const;
+
+
     void Set(const double& tCrd, const double& xCrd, const double& yCrd, const double& zCrd,
              const double& engy, const double& xMom, const double& yMom, const double& zMom);
+    //sets the momentum components, keeping the MASS constant (reevaluates energy)
+    void SetMomXYZ(const double& xMom, const double& yMom, const double& zMom);
+    void SetTXYZ(const double& tCrd, const double& xCrd, const double& yCrd, const double& zCrd);
+
+
     //rotates the Momentum vector in Phi
     void RotateMomPhi(const double& angle);
     void RenormSpacialCoordinates(const double& Renorm);
+    void Print();
     CatsLorentzVector const operator+(const CatsLorentzVector& other);
     CatsLorentzVector const operator-(const CatsLorentzVector& other);
     void operator=(const CatsLorentzVector& other);
@@ -101,6 +115,7 @@ protected:
     double beta;
 
     void Boost(const CatsLorentzVector& boostVec, const double* InVec, double* OutVec);
+    void BoostBack(const CatsLorentzVector& boostVec, const double* InVec, double* OutVec);
     void ComputeBetaGamma();
 };
 
@@ -115,12 +130,26 @@ public:
     int GetPid() const;
     double GetMass() const;
     double GetWidth() const;
+    //CatsParticle*& Decay(const unsigned& Nbody, const double* mass);
+    //propagate==true means that the coordinates of the mother will be shifted
+    //N.B. this is always done for the daughters
+    //to the point at which the decay occurs. The lifetime is assumed 1/Width. If width is zero, no propagation is done
+    //N.B. if also only works if we have a SetDecayRanGen activated!!!
+    //N.B. for the propagation to work, we need the correct unit conversion between space and momentum
+    //by default we assume that we work with MeV and fm, i.e. we have an hbarc conversion factor of c.a. 197 MeV*fm
+    //you can change this conversion by Set_hbarc, i.e. setting it to 1 assumes we work in natural units
+    CatsParticle* Decay(const double& mass1, const double& mass2, const bool& propagate=true);
+    void SetDecayRanGen(DLM_Random* rangen);
+    void SetDecayRanGen(DLM_Random& rangen);
+    void Set_hbarc(const double& HBARC);
     void operator=(const CatsParticle& other);
     void operator=(const CatsLorentzVector& other);
 protected:
     int Pid;
     double Mass;
     double Width;
+    DLM_Random* RanGen;
+    double hbarc;
 };
 
 //contains all info about the particles in their CM system.
@@ -183,6 +212,53 @@ private:
 
     unsigned BufferSize1;
     unsigned BufferSize2;
+};
+
+//an object used to study a specific N-body problem, e.g. 2,3,4 whatever body problem,
+//and this object corresponds to one set of N-bodies.
+class CatsMultiplet{
+public:
+  enum RefFrame { LAB, CM };
+  //copy_particles==true means that each time a particle is set, it will be copied to this class
+  //else you will point to the original object, and it is up to the user to keep track
+  //of the memory. N.B. the latter can be a big deal in memory saving and reduced CPU time due to copy,
+  //which may be useful in large scale simulations.
+  CatsMultiplet(DLM_Random& ran_gen, const unsigned& nbody, const bool& copy_particles);
+  //void SetParticle(const unsigned& which_one, CatsParticle& particle, );
+  ~CatsMultiplet();
+  
+  //KEEP THE TAU CORRECTION AS AN OPTION!!!
+  void ComputeMultiplets(const bool& TauCorrection=true);
+  CatsParticle* GetParticle(const int& ref_frame, const unsigned& which_one) const;
+
+//SO HERE: TRY TO SOMEHOW PUT THE GETQ (4-mom) DEFINITION + THE OPTION OF KSTAR (3-vec) FOR TWO_BODY CASE
+//FOR THE GETR, LEAVE ROOM OPEN FOR OTHER OPTIONS LATER ON, FOR NOW DO THE STANDARD 2-body 3-vec
+//AND FOR MULTIPLETS... WELL PERHAPS JUST FOR FUN DO THE 4-VECTOR STUFF, WHY THE HELL NOT
+  //the relative distance between two particles
+  double GetRstar(const int& ref_frame, const unsigned& part1, const unsigned& part2) const;
+  //based on 4-vectors
+  double GetRinv(const int& ref_frame, const unsigned& part1, const unsigned& part2) const;
+  //same as above but for all particles (R_N similar to Q_N)
+  double GetRinv(const int& ref_frame);
+  //relative momentum between two particles defined based on 3-vectors
+  double GetQstar(const int& ref_frame, const unsigned& part1, const unsigned& part2) const;
+  //1/2 of Qstar
+  double GetKstar(const int& ref_frame, const unsigned& part1, const unsigned& part2) const;
+  //the relative momentum between two particles, based on 4-momenta
+  //N.B. for two body this is approx 2*kstar !!!
+  double GetQinv(const int& ref_frame, const unsigned& part1, const unsigned& part2) const;
+  //for QN definition: https://www.annualreviews.org/doi/pdf/10.1146/annurev.nucl.55.090704.151533
+  //aslo info here: https://arxiv.org/pdf/1502.02121.pdf
+  double GetQinv(const int& ref_frame) const;
+private:
+  DLM_Random& RanGen;
+  const unsigned Nbody;
+  const bool CopyParticles;
+  //these particles can be pointers or objects
+  CatsParticle** Particle;
+  //these guys are always owned by the CatsMultiplet
+  CatsParticle** ParticleCm;
+
 };
 
 //at the moment I do not check if the events loaded are of the same PID type (which should be the case!)
