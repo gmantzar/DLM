@@ -140,7 +140,7 @@ public:
   //n.b. if the TotalYield is not fixed, the return value is dynamically
   //evaluated by summing up all yields of all particles
   float GetYield() const;//done
-  TreParticle* NewParticle(const char* name=NULL);//done W/O QA !!!
+  TreParticle* NewParticle(const char* name="");//done W/O QA !!!
   TreParticle* GetParticle(const unsigned& whichone) const;//done W/O QA !!!
   TreParticle* GetParticle(const char* name) const;//done
   //based on abundance
