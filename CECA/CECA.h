@@ -9,13 +9,55 @@ template <class Type> class DLM_Histo;
 class CatsLorentzVector;
 class CatsParticle;
 class TREPNI;
+class TreParticle;
+class TreChain;
 class DLM_CleverMcLevyResoTM;
 class DLM_Timer;
+class DLM_Random;
+
+class CecaParticle{
+public:
+  CecaParticle();
+  CecaParticle(const CecaParticle &other);
+  ~CecaParticle();
+  const TreParticle* Trepni() const;
+  CatsParticle* Cats() const;
+  CatsParticle* Mother() const;
+
+  const TreChain* Decay() const;
+  void SetTrepni(const TreParticle& prt_tre);
+  void SetCats(const CatsParticle& prt_cats);
+  void SetDecay(const TreChain& prt_dec);
+  void RandomDecay(DLM_Random* RanGen=NULL);
+  void SetTrepni(const TreParticle* prt_tre);
+  void SetCats(const CatsParticle* prt_cats);
+  void SetDecay(const TreChain* prt_dec);
+  void SetOrigin(const char& origin);
+  void SetMother(const CatsParticle* mama);
+  bool IsUseful() const;//is of the required type
+  bool IsUsefulPrimordial() const;//+primordial
+  bool IsUsefulProduct() const;//+decay product
+  bool WithinAcceptance() const;
+  CecaParticle& operator=(const CecaParticle& other);
+private:
+  //n.b. the CatsParticle is owned!!!
+  const TreParticle* trepni;
+  CatsParticle* cats;
+  CatsParticle* mother;
+  const TreChain* decay;
+  //1 - primordial of the required type
+  //2 - decay product of the required type
+  //-1 - primordial of non-required type
+  //-2 - decay product of non-required type
+  char Origin;
+};
 
 //we can create one CECA only with a specific database, that is not allowed to be modified
 class CECA{
 public:
-  CECA(const TREPNI& database);
+  //list_of_particles contains the names of the particles separated by commas and/or spaces
+  CECA(const TREPNI& database, const std::vector<std::string>& list_of_particles);
+  //CECA(const TREPNI& database);
   ~CECA();
 
   //the width (X), alpha factor (Levy) related to the displacement source
@@ -35,8 +77,14 @@ public:
   void SetHadronizationT(const float& width, const float& levy=2);//done
   //identical X,Y,Z
   void SetHadronization(const float& width, const float& levy=2);//done
+  void SetHadrFluctuation(const float& fluct);//done no QA
 
-  void SetTau(const float& tau);//done
+  //if proper == true, it means the time is defined in the rest frame
+  //of the particle (i.e. property of the particle)
+  //if false, the time is let to run in the LAB, i.e. we treat this parameter
+  //as a property of the system itself
+  void SetTau(const float& tau, const float& fluct=0, const bool& proper=true);//done
+  void SetThermalKick(const float& kick);//done w/o qa
 
   //all source up to DIM will be evaluated
   void SetSourceDim(const unsigned char& sdim);//done
@@ -59,7 +107,7 @@ public:
   //dont go overboard, as generating a new variation within the database
   //takes some time. The idea is that we equally split our TargetYield
   //amoung each (random) systematic variation, done automatically in GoBabyGo
-  void SetSystVars(const unsigned& howmany);//done
+  //void SetSystVars(const unsigned& howmany);//done
 
   //0 = single particle (SP)
   //1 = nolan (NL)
@@ -82,8 +130,12 @@ public:
   //also, the GoBabyGo will run for a minimum time set by the timeout.
   //Unless there is a very good reason, do not change the default value!
   //The time is given in seconds (integer!)
-  void SetThreadTimeout(const unsigned& seconds);
+  void SetThreadTimeout(const unsigned& seconds);//done
+  void SetSeed(const unsigned& thread, const unsigned& seed);//done
   //void SetThreadTimeout(const unsigned& seconds);
+  //true by default. Within a multiplet it propagates the particles until
+  //they all have the same tau component
+  void EqualizeFsiTime(const bool& yesno);//done
 
   //if num_threads=0, we will dynamically adjust based on efficiency
 //check if EMULT>=SDIM on start!!!
@@ -103,10 +155,46 @@ public:
   DLM_Histo<float>* Old_RcP2;
   DLM_Histo<float>* Old_P1P2;
 
+  DLM_Histo<float>* Ghetto_kstar;
+  DLM_Histo<float>* Ghetto_kstar_rstar;
+  DLM_Histo<float>* Ghetto_mT_rstar;
+  DLM_Histo<float>* GhettoFemto_rstar;
+  DLM_Histo<float>* GhettoFemto_mT_rstar;
+  DLM_Histo<float>* GhettoFemto_mT_kstar;
+  DLM_Histo<float>* Ghetto_mT_costh;
+  DLM_Histo<float>* GhettoSP_pT_th;
+  DLM_Histo<float>* GhettoSP_pT_1;
+  DLM_Histo<float>* GhettoSP_pT_2;
+
+  DLM_Histo<float>* Ghetto_PP_AngleRcP1;
+  DLM_Histo<float>* Ghetto_PP_AngleRcP2;
+  DLM_Histo<float>* Ghetto_PP_AngleP1P2;
+
+  DLM_Histo<float>* Ghetto_RP_AngleRcP1;
+  DLM_Histo<float>* Ghetto_PR_AngleRcP2;
+
+  DLM_Histo<float>* Ghetto_RR_AngleRcP1;
+  DLM_Histo<float>* Ghetto_RR_AngleRcP2;
+  DLM_Histo<float>* Ghetto_RR_AngleP1P2;
+
+  //pp / pr / rp / rr
+  unsigned GhettoFemtoPrimReso[4];
+  unsigned GhettoPrimReso[4];
+  //unsigned GhettoSpPrim[2];
+
+
   DLM_CleverMcLevyResoTM* Old_source;
 
+
+double GHETTO_ResoAbundance[2];
+double GHETTO_ResoMass[2];
+double GHETTO_ResoTau[2];
+double GHETTO_DaughterMass[2][2];
+
+bool GHETTO_EVENT=false;
 private:
   const TREPNI& Database;
+  std::vector<std::string> ListOfParticles;
 
   short SourceConvention;
   //XYZ
@@ -114,7 +202,12 @@ private:
   float* DisplacementAlpha;
   float* Hadronization;
   float* HadronizationAlpha;
+  float HadrFluct;
   float Tau;
+  float TauFluctuation;
+  bool ProperTau;
+  bool EqualFsiTau;
+  float ThermalKick;
   unsigned char SDIM;
 //bug prone: if this is smaller then SDIM, we are up for trouble!
   unsigned short EMULT;
@@ -122,6 +215,7 @@ private:
   unsigned AchievedYield;
   char SrcCnv;
   bool DebugMode;
+  DLM_Random** RanGen;
 
   //the k* (MeV) below which a FemtoPair is concidered such
   //N.B. for more particles QN = sqrt(N*kstarlimit)
@@ -130,14 +224,19 @@ private:
   //all particle pairs is still saved, e.g. for systematics
   float UpperLimit;
   //the number of desired systematic variations
-  unsigned NumSystVars;
+  //unsigned NumSystVars;
 
   //how many particles to simulate
   //it would be nice to have some basic auto-sampling to estimate how many
   //pairs are needed to reach a certain amount of pairs, triplets, or whatever
   unsigned NumParticles;//this is not used so far...
 
-  void GenerateEvent();
+  //CatsMultiplet
+
+  bool ParticleInList(const std::string& name) const;
+  bool ParticleInList(const TreParticle* prt) const;
+  unsigned GenerateEvent();
+unsigned GenerateEventTEMP();
   //returns the number of generated multiplets
   unsigned GoSingleCore(const unsigned& ThId);
   void OptimizeThreadCount();
@@ -161,8 +260,10 @@ private:
   unsigned Timeout;
   //
 
-
+  void GhettoInit();
 
 };
+
+
 
 #endif // CECA_H
