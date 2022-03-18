@@ -105,6 +105,20 @@ double DoubleGaussSource(double* Pars){
 
 }
 
+double NormDoubleGaussSource(double* Pars){
+  return Pars[6]*DoubleGaussSource(Pars);
+}
+//[3]*DGS(size1 [0],size2 [1],weight1 [2])
+double NormDoubleGaussSourceTF1(double* x, double* Pars){
+  double PARS[7];
+  PARS[0] = 0;
+  PARS[1] = *x;
+  PARS[2] = 0;
+  for(int i=0; i<4; i++)
+    PARS[3+i] = Pars[i];
+  return NormDoubleGaussSource(PARS);
+}
+
 double GaussCauchySource(double* Pars){
     //double& Momentum = Pars[0];
     double& Radius = Pars[1];
@@ -1929,13 +1943,15 @@ double DLM_CleverMcLevyResoTM::Eval(double* Pars){
                     }
 
 //if(ResoWeight[0]==1){
+//if(RAD*RAD+BGT[0]*BGT[0]+BGT[1]*BGT[1]
+//           -2.*RAD*BGT[0]*CosRcP0+2.*RAD*BGT[1]*CosRcP1-2.*BGT[0]*BGT[1]*CosP0P1<0){
 //printf("RAD = %f\n",RAD);
 //printf("BGT[0] = %f\n",BGT[0]);
 //printf("BGT[1] = %f\n",BGT[1]);
 //printf("CosRcP0 = %f\n",CosRcP0);
 //printf("CosRcP1 = %f\n",CosRcP1);
 //printf("CosP0P1 = %f\n",CosP0P1);
-//usleep(1000e3);
+//usleep(100e3);
 //printf("\n");
 //}
 
@@ -1955,7 +1971,7 @@ double DLM_CleverMcLevyResoTM::Eval(double* Pars){
 //printf("r_star = %.1f (%.1f)\n",RAD,RAD_avg/double(counter));
 //printf(" sqrt(%.1f^2 + %.3f^2 + %.3f^2 - 2*%.1f*%.3f*%.3f + 2*%.1f*%.3f*%.3f - 2*%.3f*%.3f*%.3f)\n",
 //rad,BGT[0],BGT[1],rad,BGT[0],CosRcP0,rad,BGT[1],CosRcP1,BGT[0],BGT[1],CosP0P1);
-//usleep(100e3);
+//usleep(25e3);
                     WhichBin[0] = Histo->GetBin(0,RAD);
                     TotBin = Histo->GetTotBin(WhichBin);
                     BinSize = Histo->GetBinSize(0,WhichBin[0]);
@@ -1974,6 +1990,10 @@ double DLM_CleverMcLevyResoTM::Eval(double* Pars){
         }
     }
     double RETVAL = Histo->Eval(RSS);
+    //if(Normalization*RETVAL<0||Normalization*RETVAL>1){
+    //  printf("RETVAL = %f*%f\n",Normalization,RETVAL);
+    //  usleep(1000e3);
+    //}
     return Normalization*RETVAL;
 
 }

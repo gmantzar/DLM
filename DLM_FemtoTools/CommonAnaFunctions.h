@@ -55,6 +55,7 @@ public:
     //POT:
     //  "AV18"
     void SetUpCats_pp(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar=0, const int& SourceVar=0);
+    void SetUpCats_ppic(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar=0, const int& SourceVar=200);
     void SetUpCats_pipi(CATS& Kitty, const TString& SOURCE, const int& SourceVar);
     void SetUpCats_pipi_broken(CATS& Kitty, const TString& SOURCE, const int& SourceVar);
     //POT:
@@ -121,6 +122,10 @@ public:
     DLM_CleverMcLevyResoTM* GetCleverMcLevyResoTM_pXim();
     DLM_CleverMcLevyResoTM* GetCleverMcLevyResoTM_pOmegam();
     DLM_CleverMcLevyResoTM* GetCleverMcLevyResoTM_pipi();
+    DLM_CleverMcLevyResoTM* GetCleverMcLevyResoTM_ppic();
+
+
+    DLM_CleverMcLevyResoTM* GaussCoreRsm_LK(const int& SourceVar);
 
 private:
     void Clean_CommonAnaFunctions();
@@ -137,7 +142,7 @@ DLM_Histo<double>* ConvertThetaAngleHisto(const TString& FileName, const TString
 void RootFile_DlmCk(const TString& RootFileName, const TString& GraphName, DLM_Ck* CkToPlot);
 void RootFile_DlmCk(const TString& RootFileName, const TString& GraphName, CATS* Kitty);
 void RootFile_DlmSource(const TString& RootFileName, const TString& GraphName, CATS* Kitty, const unsigned& NumBins, const double& rMin, const double& rMax, const double& lambda=1, const bool& FourPi=true);
-
+double Get_reff(TH1F* hsource, const float lambda=1, const float CEI=0.9);
 /*
 class DLM_Analyzer{
 

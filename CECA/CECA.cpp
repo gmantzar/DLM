@@ -147,6 +147,8 @@ CECA::CECA(const TREPNI& database,const std::vector<std::string>& list_of_partic
   Old_rstar = NULL;
   Old_rcore = NULL;
   Old_source = NULL;
+  SetUp_RSM = NULL;
+  Buffer_RSM = NULL;
   Old_CosRcP1 = NULL;
   Old_CosRcP2 = NULL;
   Old_CosP1P2 = NULL;
@@ -253,6 +255,9 @@ void CECA::SetDisplacementX(const float& width, const float& levy){
   Displacement[0] = fabs(width);
   DisplacementAlpha[0] = levy;
 }
+float CECA::GetDisplacementX() const{
+  return Displacement[0];
+}
 
 void CECA::SetDisplacementY(const float& width, const float& levy){
   if(levy<1||levy>2){
@@ -261,6 +266,9 @@ void CECA::SetDisplacementY(const float& width, const float& levy){
   }
   Displacement[1] = fabs(width);
   DisplacementAlpha[1] = levy;
+}
+float CECA::GetDisplacementY() const{
+  return Displacement[1];
 }
 
 void CECA::SetDisplacementZ(const float& width, const float& levy){
@@ -271,11 +279,17 @@ void CECA::SetDisplacementZ(const float& width, const float& levy){
   Displacement[2] = fabs(width);
   DisplacementAlpha[2] = levy;
 }
+float CECA::GetDisplacementZ() const{
+  return Displacement[2];
+}
 
 //identical X,Y
 void CECA::SetDisplacementT(const float& width, const float& levy){
   SetDisplacementX(width,levy);
   SetDisplacementY(width,levy);
+}
+float CECA::GetDisplacementT() const{
+  return sqrt(Displacement[0]*Displacement[0]+Displacement[1]*Displacement[1])/sqrt(2.);
 }
 
 //identical X,Y,Z
@@ -283,6 +297,9 @@ void CECA::SetDisplacement(const float& width, const float& levy){
   SetDisplacementX(width,levy);
   SetDisplacementY(width,levy);
   SetDisplacementZ(width,levy);
+}
+float CECA::GetDisplacement() const{
+  return sqrt(Displacement[0]*Displacement[0]+Displacement[1]*Displacement[1]+Displacement[2]*Displacement[2])/sqrt(3.);
 }
 
 void CECA::SetHadronizationX(const float& width, const float& levy){
@@ -293,6 +310,9 @@ void CECA::SetHadronizationX(const float& width, const float& levy){
   Hadronization[0] = width;
   HadronizationAlpha[0] = levy;
 }
+float CECA::GetHadronizationX() const{
+  return Hadronization[0];
+}
 
 void CECA::SetHadronizationY(const float& width, const float& levy){
   if(levy<1||levy>2){
@@ -301,6 +321,9 @@ void CECA::SetHadronizationY(const float& width, const float& levy){
   }
   Hadronization[1] = width;
   HadronizationAlpha[1] = levy;
+}
+float CECA::GetHadronizationY() const{
+  return Hadronization[1];
 }
 
 void CECA::SetHadronizationZ(const float& width, const float& levy){
@@ -311,11 +334,17 @@ void CECA::SetHadronizationZ(const float& width, const float& levy){
   Hadronization[2] = width;
   HadronizationAlpha[2] = levy;
 }
+float CECA::GetHadronizationZ() const{
+  return Hadronization[2];
+}
 
 //identical X,Y
 void CECA::SetHadronizationT(const float& width, const float& levy){
   SetHadronizationX(width,levy);
   SetHadronizationY(width,levy);
+}
+float CECA::GetHadronizationT() const{
+  return sqrt(Hadronization[0]*Hadronization[0]+Hadronization[1]*Hadronization[1])/sqrt(2.);
 }
 
 //identical X,Y,Z
@@ -330,9 +359,15 @@ void CECA::SetHadronization(const float& width, const float& levy){
   //Hadronization = fabs(width);
   //HadronizationAlpha = levy;
 }
+float CECA::GetHadronization() const{
+  return sqrt(Hadronization[0]*Hadronization[0]+Hadronization[1]*Hadronization[1]+Hadronization[2]*Hadronization[2])/sqrt(3.);
+}
 
 void CECA::SetHadrFluctuation(const float& fluct){
   HadrFluct = fluct;
+}
+float CECA::GetHadrFluctuation() const{
+  return HadrFluct;
 }
 
 void CECA::SetTau(const float& tau, const float& fluct, const bool& proper){
@@ -343,6 +378,9 @@ void CECA::SetTau(const float& tau, const float& fluct, const bool& proper){
   Tau = tau;
   TauFluctuation = fluct;
   ProperTau = proper;
+}
+float CECA::GetTau() const{
+  return Tau;
 }
 
 void CECA::SetThermalKick(const float& kick){
@@ -419,6 +457,7 @@ unsigned CECA::GoSingleCore(const unsigned& ThId){
   do{
     NumMultiplets += GenerateEvent();
     ExeTime = unsigned(ThreadClock[ThId].Stop()/(long long)(1000000));
+    //printf("ExeTime = %u\n",ExeTime);
     DebugCounter++;
   }
   while(ExeTime<Timeout);
@@ -443,7 +482,6 @@ void CECA::SaveBuffer(){
 
 void CECA::GoBabyGo(const unsigned& num_threads){
   GhettoInit();
-
   if(!Database.QA()){
       return;
   }
@@ -807,7 +845,6 @@ unsigned CECA::GenerateEvent(){
           primordial->Cats()->Decay(
           primordial->Decay()->GetDaughterMasses(),
           true);
-
         for(unsigned char nd=0; nd<primordial->Decay()->GetNumDaughters(); nd++){
           if(ParticleInList(primordial->Decay()->GetDaughter(nd))){
             Primary.push_back(new CecaParticle());
@@ -820,9 +857,17 @@ unsigned CECA::GenerateEvent(){
               delete Primary.back();
               Primary.pop_back();
             }
+            else{
+              GhettoSP_pT_th->Fill(Primary.back()->Cats()->GetPt(),Primary.back()->Cats()->GetTheta());
+              if(Primary.back()->Trepni()->GetName()==ListOfParticles.at(0)){
+                GhettoSP_pT_1->Fill(Primary.back()->Cats()->GetPt());
+              }
+              if(Primary.back()->Trepni()->GetName()==ListOfParticles.at(1)){
+                GhettoSP_pT_2->Fill(Primary.back()->Cats()->GetPt());
+              }
+            }
           }
         }
-
         delete [] daughters;
       }
       else{
@@ -832,14 +877,15 @@ unsigned CECA::GenerateEvent(){
           delete Primary.back();
           Primary.pop_back();
         }
-      }
-
-      GhettoSP_pT_th->Fill(Primary.back()->Cats()->GetPt(),Primary.back()->Cats()->GetTheta());
-      if(Primary.back()->Trepni()->GetName()==ListOfParticles.at(0)){
-        GhettoSP_pT_1->Fill(Primary.back()->Cats()->GetPt());
-      }
-      if(Primary.back()->Trepni()->GetName()==ListOfParticles.at(1)){
-        GhettoSP_pT_2->Fill(Primary.back()->Cats()->GetPt());
+        else{
+          GhettoSP_pT_th->Fill(Primary.back()->Cats()->GetPt(),Primary.back()->Cats()->GetTheta());
+          if(Primary.back()->Trepni()->GetName()==ListOfParticles.at(0)){
+            GhettoSP_pT_1->Fill(Primary.back()->Cats()->GetPt());
+          }
+          if(Primary.back()->Trepni()->GetName()==ListOfParticles.at(1)){
+            GhettoSP_pT_2->Fill(Primary.back()->Cats()->GetPt());
+          }
+        }
       }
 
     }//iteration over all primordials
@@ -940,11 +986,23 @@ drz = cm_rel.GetZ();
 
 double kstar = 0.5*cm_rel.GetP();
 double rstar = cm_rel.GetR();
+double klab = 0.5*boost_v.GetP();
+double kT = 0.5*boost_v.GetPt();
+double m1 = prt_cm[0].Cats()->GetMass();
+double m2 = prt_cm[1].Cats()->GetMass();
+double mavg = (m1+m2)*0.5;
 double mT = 0.5*boost_v.GetMt();
+double mT_wrong = sqrt(kT*kT+mavg*mavg);
+//if(kstar<200&&mT>3000){
+//  printf("k*=%.0f; k=%.0f; kT=%.0f; mT=%.0f; mTw=%.0f (%.2f%%); m1=%.0f; m2=%.0f\n",kstar,klab,kT,mT,mT_wrong,fabs((mT_wrong-mT)/mT)*100,m1,m2);
+//  usleep(100e3);
+//}
+
 
 double AngleP1P2=0;
 double AngleRcP1=0;
 double AngleRcP2=0;
+double BGT,BGT1,BGT2;
 
 if(kstar<FemtoLimit){
 
@@ -967,6 +1025,9 @@ if(kstar<FemtoLimit){
     cosine /= (prt_cm[0].Cats()->GetP()*prt_cm[1].Cats()->GetP());//
     if(cosine>1 || cosine<-1) cosine = round(cosine);
     AngleP1P2 = acos(cosine);
+
+//printf("%i %i\n",prt_cm[0].IsUsefulProduct(),prt_cm[1].IsUsefulPrimordial());
+//usleep(100e3);
     if( prt_cm[0].Trepni()->GetName()==ListOfParticles.at(0)&&
         prt_cm[1].Trepni()->GetName()==ListOfParticles.at(1)){
           //printf("1 %f %f %f\n",AngleRcP1,AngleRcP2,AngleP1P2);
@@ -980,7 +1041,7 @@ if(kstar<FemtoLimit){
           //printf("3\n");
           Ghetto_PP_AngleRcP1->Fill(Pi-AngleRcP2);
           Ghetto_PP_AngleRcP2->Fill(Pi-AngleRcP1);
-          Ghetto_PP_AngleP1P2->Fill(Pi-AngleP1P2);
+          Ghetto_PP_AngleP1P2->Fill(AngleP1P2);
           //printf("4\n");
     }
   }
@@ -990,8 +1051,48 @@ if(kstar<FemtoLimit){
                     cm_core.GetZ()*prt_cm[0].Mother()->GetPz();
     cosine /= (cm_core.GetR()*prt_cm[0].Mother()->GetP());
     AngleRcP1 = acos(cosine);
-    if(prt_cm[0].Trepni()->GetName()==ListOfParticles.at(0)) Ghetto_RP_AngleRcP1->Fill(AngleRcP1);
-    if(prt_cm[0].Trepni()->GetName()==ListOfParticles.at(1)) Ghetto_PR_AngleRcP2->Fill(Pi-AngleRcP1);
+    if(prt_cm[0].Trepni()->GetName()==ListOfParticles.at(0)){
+      Ghetto_RP_AngleRcP1->Fill(AngleRcP1);
+      if(SetUp_RSM){
+        BGT = RanGen[ThId]->Exponential(prt_cm[0].Mother()->GetWidth()*prt_cm[0].Mother()->GetMass()/prt_cm[0].Mother()->GetP())*hbarc;
+        SetUp_RSM->AddBGT_RP(BGT,cos(AngleRcP1));
+      }
+      if(Buffer_RSM){
+        Buffer_RSM->push_back(new float[11]);
+        Buffer_RSM->back()[0]=110;
+        Buffer_RSM->back()[1]=kstar*2;
+        Buffer_RSM->back()[2]=prt_cm[0].Mother()->GetP();
+        Buffer_RSM->back()[3]=0;
+        Buffer_RSM->back()[4]=prt_cm[0].Mother()->GetMass();
+        Buffer_RSM->back()[5]=0;
+        Buffer_RSM->back()[6]=hbarc/prt_cm[0].Mother()->GetWidth();
+        Buffer_RSM->back()[7]=0;
+        Buffer_RSM->back()[8]=AngleRcP1;
+        Buffer_RSM->back()[9]=0;
+        Buffer_RSM->back()[10]=0;
+      }
+    }
+    if(prt_cm[0].Trepni()->GetName()==ListOfParticles.at(1)){
+      Ghetto_PR_AngleRcP2->Fill(Pi-AngleRcP1);
+      if(SetUp_RSM){
+        BGT = RanGen[ThId]->Exponential(prt_cm[0].Mother()->GetWidth()*prt_cm[0].Mother()->GetMass()/prt_cm[0].Mother()->GetP())*hbarc;
+        SetUp_RSM->AddBGT_PR(BGT,cos(Pi-AngleRcP1));
+      }
+      if(Buffer_RSM){
+        Buffer_RSM->push_back(new float[11]);
+        Buffer_RSM->back()[0]=101;
+        Buffer_RSM->back()[1]=kstar*2;
+        Buffer_RSM->back()[2]=0;
+        Buffer_RSM->back()[3]=prt_cm[0].Mother()->GetP();
+        Buffer_RSM->back()[4]=0;
+        Buffer_RSM->back()[5]=prt_cm[0].Mother()->GetMass();
+        Buffer_RSM->back()[6]=0;
+        Buffer_RSM->back()[7]=hbarc/prt_cm[0].Mother()->GetWidth();
+        Buffer_RSM->back()[8]=0;
+        Buffer_RSM->back()[9]=Pi-AngleRcP1;
+        Buffer_RSM->back()[10]=0;
+      }
+    }
   }
   else if(prt_cm[0].IsUsefulPrimordial()&&prt_cm[1].IsUsefulProduct()){
     double cosine = cm_core.GetX()*prt_cm[1].Mother()->GetPx()+
@@ -999,8 +1100,48 @@ if(kstar<FemtoLimit){
                     cm_core.GetZ()*prt_cm[1].Mother()->GetPz();
     cosine /= (cm_core.GetR()*prt_cm[1].Mother()->GetP());
     AngleRcP2 = acos(cosine);
-    if(prt_cm[1].Trepni()->GetName()==ListOfParticles.at(1)) Ghetto_PR_AngleRcP2->Fill(AngleRcP2);
-    if(prt_cm[1].Trepni()->GetName()==ListOfParticles.at(0)) Ghetto_RP_AngleRcP1->Fill(Pi-AngleRcP2);
+    if(prt_cm[1].Trepni()->GetName()==ListOfParticles.at(1)){
+      Ghetto_PR_AngleRcP2->Fill(AngleRcP2);
+      if(SetUp_RSM){
+        BGT = RanGen[ThId]->Exponential(prt_cm[1].Mother()->GetWidth()*prt_cm[1].Mother()->GetMass()/prt_cm[1].Mother()->GetP())*hbarc;
+        SetUp_RSM->AddBGT_PR(BGT,cos(AngleRcP2));
+      }
+      if(Buffer_RSM){
+        Buffer_RSM->push_back(new float[11]);
+        Buffer_RSM->back()[0]=101;
+        Buffer_RSM->back()[1]=kstar*2;
+        Buffer_RSM->back()[2]=0;
+        Buffer_RSM->back()[3]=prt_cm[1].Mother()->GetP();
+        Buffer_RSM->back()[4]=0;
+        Buffer_RSM->back()[5]=prt_cm[1].Mother()->GetMass();
+        Buffer_RSM->back()[6]=0;
+        Buffer_RSM->back()[7]=hbarc/prt_cm[1].Mother()->GetWidth();
+        Buffer_RSM->back()[8]=0;
+        Buffer_RSM->back()[9]=AngleRcP2;
+        Buffer_RSM->back()[10]=0;
+      }
+    }
+    if(prt_cm[1].Trepni()->GetName()==ListOfParticles.at(0)){
+      Ghetto_RP_AngleRcP1->Fill(Pi-AngleRcP2);
+      if(SetUp_RSM){
+        BGT = RanGen[ThId]->Exponential(prt_cm[1].Mother()->GetWidth()*prt_cm[1].Mother()->GetMass()/prt_cm[1].Mother()->GetP())*hbarc;
+        SetUp_RSM->AddBGT_RP(BGT,cos(Pi-AngleRcP2));
+      }
+      if(Buffer_RSM){
+        Buffer_RSM->push_back(new float[11]);
+        Buffer_RSM->back()[0]=110;
+        Buffer_RSM->back()[1]=kstar*2;
+        Buffer_RSM->back()[2]=prt_cm[1].Mother()->GetP();
+        Buffer_RSM->back()[3]=0;
+        Buffer_RSM->back()[4]=prt_cm[1].Mother()->GetMass();
+        Buffer_RSM->back()[5]=0;
+        Buffer_RSM->back()[6]=hbarc/prt_cm[1].Mother()->GetWidth();
+        Buffer_RSM->back()[7]=0;
+        Buffer_RSM->back()[8]=Pi-AngleRcP2;
+        Buffer_RSM->back()[9]=0;
+        Buffer_RSM->back()[10]=0;
+      }
+    }
   }
   else if(prt_cm[0].IsUsefulProduct()&&prt_cm[1].IsUsefulProduct()){
     double cosine = cm_core.GetX()*prt_cm[0].Mother()->GetPx()+
@@ -1027,6 +1168,25 @@ if(kstar<FemtoLimit){
           //printf("RcP2 is core to %s\n",prt_cm[1].Trepni()->GetName().c_str());
           //usleep(250e3);
           Ghetto_RR_AngleP1P2->Fill(AngleP1P2);
+          if(SetUp_RSM){
+            BGT1 = RanGen[ThId]->Exponential(prt_cm[0].Mother()->GetWidth()*prt_cm[0].Mother()->GetMass()/prt_cm[0].Mother()->GetP())*hbarc;
+            BGT2 = RanGen[ThId]->Exponential(prt_cm[1].Mother()->GetWidth()*prt_cm[1].Mother()->GetMass()/prt_cm[1].Mother()->GetP())*hbarc;
+            SetUp_RSM->AddBGT_RR(BGT1,cos(AngleRcP1),BGT2,cos(AngleRcP2),cos(AngleP1P2));
+          }
+          if(Buffer_RSM){
+            Buffer_RSM->push_back(new float[11]);
+            Buffer_RSM->back()[0]=111;
+            Buffer_RSM->back()[1]=kstar*2;
+            Buffer_RSM->back()[2]=prt_cm[0].Mother()->GetP();
+            Buffer_RSM->back()[3]=prt_cm[1].Mother()->GetP();
+            Buffer_RSM->back()[4]=prt_cm[0].Mother()->GetMass();
+            Buffer_RSM->back()[5]=prt_cm[1].Mother()->GetMass();
+            Buffer_RSM->back()[6]=hbarc/prt_cm[0].Mother()->GetWidth();
+            Buffer_RSM->back()[7]=hbarc/prt_cm[1].Mother()->GetWidth();
+            Buffer_RSM->back()[8]=AngleRcP1;
+            Buffer_RSM->back()[9]=AngleRcP2;
+            Buffer_RSM->back()[10]=AngleP1P2;
+          }
     }
     if( prt_cm[0].Trepni()->GetName()==ListOfParticles.at(1)&&
         prt_cm[1].Trepni()->GetName()==ListOfParticles.at(0)){
@@ -1034,7 +1194,26 @@ if(kstar<FemtoLimit){
           Ghetto_RR_AngleRcP2->Fill(Pi-AngleRcP1);
           //printf("Pi-RcP2 is core to %s\n",prt_cm[0].Trepni()->GetName().c_str());
           //usleep(250e3);
-          Ghetto_RR_AngleP1P2->Fill(Pi-AngleP1P2);
+          Ghetto_RR_AngleP1P2->Fill(AngleP1P2);
+          if(SetUp_RSM){
+            BGT1 = RanGen[ThId]->Exponential(prt_cm[1].Mother()->GetWidth()*prt_cm[1].Mother()->GetMass()/prt_cm[1].Mother()->GetP())*hbarc;
+            BGT2 = RanGen[ThId]->Exponential(prt_cm[0].Mother()->GetWidth()*prt_cm[0].Mother()->GetMass()/prt_cm[0].Mother()->GetP())*hbarc;
+            SetUp_RSM->AddBGT_RR(BGT1,cos(Pi-AngleRcP2),BGT2,cos(Pi-AngleRcP1),cos(AngleP1P2));
+          }
+          if(Buffer_RSM){
+            Buffer_RSM->push_back(new float[11]);
+            Buffer_RSM->back()[0]=111;
+            Buffer_RSM->back()[1]=kstar*2;
+            Buffer_RSM->back()[2]=prt_cm[1].Mother()->GetP();
+            Buffer_RSM->back()[3]=prt_cm[0].Mother()->GetP();
+            Buffer_RSM->back()[4]=prt_cm[1].Mother()->GetMass();
+            Buffer_RSM->back()[5]=prt_cm[0].Mother()->GetMass();
+            Buffer_RSM->back()[6]=hbarc/prt_cm[1].Mother()->GetWidth();
+            Buffer_RSM->back()[7]=hbarc/prt_cm[0].Mother()->GetWidth();
+            Buffer_RSM->back()[8]=Pi-AngleRcP2;
+            Buffer_RSM->back()[9]=Pi-AngleRcP1;
+            Buffer_RSM->back()[10]=AngleP1P2;
+          }
     }
   }
 
@@ -1538,15 +1717,15 @@ if(!prim1&&false){
 
 void CECA::GhettoInit(){
 
-  const double NumMomBins = 10*3;
+  const double NumMomBins = 20*3;
   const double MomMin = 0;
-  const double MomMax = 10*40;
+  const double MomMax = 800;
 
-  const double NumRadBins = 256;
+  const double NumRadBins = 256*8;
   const double RadMin = 0;
-  const double RadMax = 32;
+  const double RadMax = 32*8;
 
-  const double NumMtBins = 32;
+  const double NumMtBins = 64;
   const double MtMin = 0;
   const double MtMax = 4096;
 
