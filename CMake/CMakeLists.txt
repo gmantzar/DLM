@@ -10,19 +10,13 @@ SET(PROJECT_NAME "CATS")
 
 project(${PROJECT_NAME})
 # SET PATHS #
-SET(CATS_DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/..")#where to install CATS. Folder must exist.
-#SET(ROOT_PATH "/home/dmihaylov/Apps/root-6.14.00/obj")#path to ROOT
-#SET(GSL_INCLUDE "/usr/include/gsl")#where are all GSL related .h files
-execute_process (
-	COMMAND bash -c "printf $(whereis gsl | cut -d' ' -f2)"
-	OUTPUT_VARIABLE GSL_INCLUDE
-)
-#SET(GSL_LIB "/usr/lib")#where are the GSL .a and .so files
-execute_process (
-	COMMAND bash -c "printf $(whereis lib | cut -d' ' -f2)"
-	OUTPUT_VARIABLE GSL_LIB
-)
-SET(CATS_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/../DLM")#where is the CATS main folder located
+SET(CATS_DESTINATION "/home/dimihayl/Apps/CATS3")#where to install CATS. Folder must exist.
+#SET(ROOT_PATH "/home/dimihayl/Apps/ROOT/root-6.22.02/obj")#path to ROOT
+SET(ROOT_PATH "/home/dimihayl/Apps/ROOT/root-6.22.06/build")#path to ROOT
+#SET(ROOT_PATH "/home/dimihayl/Apps/ROOT/root-6.20.02/obj")
+SET(GSL_INCLUDE "/usr/local/include/gsl")#where are all GSL related .h files
+SET(GSL_LIB "/usr/local/lib")#where are the GSL .a and .so files
+SET(CATS_FOLDER "/home/dimihayl/Software/Repositories/DLM")#where is the CATS main folder located
 # DO NOT CHANGE THE REST #
 
 SET(VERSION_MAJOR 3)
