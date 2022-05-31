@@ -4,6 +4,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "gsl_sf_gamma.h"
 
@@ -179,6 +180,9 @@ double CatsLorentzVector::GetY() const{
 }
 double CatsLorentzVector::GetZ() const{
     return FourSpace[3];
+}
+double CatsLorentzVector::GetR(const int& xyz) const{
+    return (xyz>=0&&xyz<3)?FourSpace[xyz+1]:0;
 }
 double CatsLorentzVector::GetTheta() const{
     //return FourSpace[1] == 0.0 && FourSpace[2] == 0.0 && FourSpace[3] == 0.0 ? 0.0 : atan2(sqrt(FourSpace[1]*FourSpace[1]+FourSpace[2]*FourSpace[2]),FourSpace[3]);
@@ -450,10 +454,64 @@ double CatsLorentzVector::GetRapidity() const{
     return 0.5*log((FourMomentum[0]+FourMomentum[3])/(FourMomentum[0]-FourMomentum[3]));
 }
 double CatsLorentzVector::GetScatAngle() const{
-    return acos(GetCosScatAngle());
+  double CosAngle = GetCosScatAngle();
+  if(CosAngle<-1||CosAngle>1) return 0;
+  return acos(CosAngle);
 }
 double CatsLorentzVector::GetCosScatAngle() const{
+    if(!(GetR()*GetP())) return 0;
     return (FourSpace[1]*FourMomentum[1]+FourSpace[2]*FourMomentum[2]+FourSpace[3]*FourMomentum[3])/(GetR()*GetP());
+}
+double CatsLorentzVector::GetCosAngleR(const CatsLorentzVector& other) const{
+  if(!(GetR()*other.GetR())) return 0;
+  return (FourSpace[1]*other.FourSpace[1]+FourSpace[2]*other.FourSpace[2]+FourSpace[3]*other.FourSpace[3])/(GetR()*other.GetR());
+}
+double CatsLorentzVector::GetCosAngleP(const CatsLorentzVector& other) const{
+  if(!(GetP()*other.GetP())) return 0;
+  return (FourMomentum[1]*other.FourMomentum[1]+FourMomentum[2]*other.FourMomentum[2]+FourMomentum[3]*other.FourMomentum[3])/(GetP()*other.GetP());
+}
+double CatsLorentzVector::GetCosAngleRP(const CatsLorentzVector& other) const{
+  if(!(GetR()*other.GetP())) return 0;
+  return (FourSpace[1]*other.FourMomentum[1]+FourSpace[2]*other.FourMomentum[2]+FourSpace[3]*other.FourMomentum[3])/(GetR()*other.GetP());
+}
+double CatsLorentzVector::GetAngleR(const CatsLorentzVector& other) const{
+  double CosAngle = GetCosAngleR(other);
+  if(CosAngle<-1||CosAngle>1) return 0;
+  return acos(CosAngle);
+}
+double CatsLorentzVector::GetAngleP(const CatsLorentzVector& other) const{
+  double CosAngle = GetCosAngleP(other);
+  if(CosAngle<-1||CosAngle>1) return 0;
+  return acos(CosAngle);
+}
+double CatsLorentzVector::GetAngleRP(const CatsLorentzVector& other) const{
+  double CosAngle = GetCosAngleRP(other);
+  if(CosAngle<-1||CosAngle>1) return 0;
+  return acos(CosAngle);
+}
+double CatsLorentzVector::GetCosAngleR(const CatsLorentzVector* other) const{
+  if(other==NULL) return 0;
+  return GetCosAngleR(*other);
+}
+double CatsLorentzVector::GetCosAngleP(const CatsLorentzVector* other) const{
+  if(other==NULL) return 0;
+  return GetCosAngleP(*other);
+}
+double CatsLorentzVector::GetCosAngleRP(const CatsLorentzVector* other) const{
+  if(other==NULL) return 0;
+  return GetCosAngleRP(*other);
+}
+double CatsLorentzVector::GetAngleR(const CatsLorentzVector* other) const{
+  if(other==NULL) return 0;
+  return GetAngleR(*other);
+}
+double CatsLorentzVector::GetAngleP(const CatsLorentzVector* other) const{
+  if(other==NULL) return 0;
+  return GetAngleP(*other);
+}
+double CatsLorentzVector::GetAngleRP(const CatsLorentzVector* other) const{
+  if(other==NULL) return 0;
+  return GetAngleRP(*other);
 }
 
 CatsParticle::CatsParticle(){
@@ -552,6 +610,7 @@ CatsParticle* CatsParticle::DecaySimple(const std::vector<double> masses, const 
 
 //two body decay
 CatsParticle* CatsParticle::Decay(const double& mass1, const double& mass2, const bool& propagate){
+//printf("CatsParticle::Decay %i\n",propagate);
   CatsParticle* Daughters = NULL;
   if(mass1+mass2>GetMass()){
     printf("\033[1;31mERROR:\033[0m in CatsParticle::Decay: The daughters are heavier than the mother!\n");
@@ -591,9 +650,16 @@ CatsParticle* CatsParticle::Decay(const double& mass1, const double& mass2, cons
   else{
     TAU = 0;
   }
-  //printf( "TAU = 1./%.2f 1/MeV = %.2f fm -boost-> %.2f fm\n",1./TAU,TAU*hbarc,gamma*TAU*hbarc);
 
+//static double avg_TAU = 0;
+//avg_TAU+=TAU;
+//static int count_tau = 0;
+//count_tau++;
+//printf("%.2f (%.2f)\n",TAU*hbarc,avg_TAU*hbarc/double(count_tau));
+
+//printf("Alles gut\n");
   if(GetMass()){
+    //printf( "TAU = 1./%.2f 1/MeV = %.2f fm -boost-> %.2f fm\n",1./TAU,TAU*hbarc,gamma*TAU*hbarc);
     //this is beta*gamma*time, i.e. boost effect accounted for
     DecaySpacePoint[0] += gamma*TAU*hbarc;
     DecaySpacePoint[1] += (FourMomentum[1])*TAU/GetMass()*hbarc;
@@ -601,11 +667,18 @@ CatsParticle* CatsParticle::Decay(const double& mass1, const double& mass2, cons
     DecaySpacePoint[3] += (FourMomentum[3])*TAU/GetMass()*hbarc;
     //for(int i=0; i<4; i++){
     //  printf(" (%i) %.3f + %.3f = %.3f\n",i,FourSpace[i],i?(FourMomentum[i])*TAU/GetMass()*hbarc:gamma*TAU*hbarc,DecaySpacePoint[i]);
-    //}
     //printf("shift = %.2e\n");
+    //}
+    //usleep(200e3);
   }
+  //else{
+    //printf("GetMass() == %f\n",GetMass());
+    //usleep(200e3);
+  //}
+
 
   if(propagate){
+    //printf("PROPAGATE\n");
     SetTXYZ(DecaySpacePoint[0],DecaySpacePoint[1],DecaySpacePoint[2],DecaySpacePoint[3]);
   }
 

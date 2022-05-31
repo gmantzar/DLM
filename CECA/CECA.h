@@ -32,6 +32,7 @@ public:
   void SetTrepni(const TreParticle* prt_tre);
   void SetCats(const CatsParticle* prt_cats);
   void SetDecay(const TreChain* prt_dec);
+  //0 - useless, 1 - primordial, 2 - decay product
   void SetOrigin(const char& origin);
   void SetMother(const CatsParticle* mama);
   bool IsUseful() const;//is of the required type
@@ -89,6 +90,11 @@ public:
   float GetHadronization() const;//done
   void SetHadrFluctuation(const float& fluct);//done no QA
   float GetHadrFluctuation() const;//done
+  //this should be false, however during testing it was found out that the
+  //EPOS model is doing exactly that (propagating the primordial resonances to the decay point)
+  //this makes the angles that we extract to equal those between rstar and XX, not rcore and XX
+  //This function was introduced only with the intent of testing these effects!!!
+  void SetPropagateMother(const bool& yesno);//done
 
   //if proper == true, it means the time is defined in the rest frame
   //of the particle (i.e. property of the particle)
@@ -99,6 +105,7 @@ public:
   void SetThermalKick(const float& kick);//done w/o qa
 
   //all source up to DIM will be evaluated
+//THIS SHOULD BE FIX BY THE PARTICLE LIST
   void SetSourceDim(const unsigned char& sdim);//done
   //the yield of multipletes in the highest dimension
   //e.g. if DIM is set to 3, this will be the target for 3-body yield
@@ -171,7 +178,9 @@ public:
   DLM_Histo<float>* Ghetto_kstar_rstar;
   DLM_Histo<float>* Ghetto_mT_rstar;
   DLM_Histo<float>* GhettoFemto_rstar;
+  DLM_Histo<float>* GhettoFemto_rcore;
   DLM_Histo<float>* GhettoFemto_mT_rstar;
+  DLM_Histo<float>* GhettoFemto_mT_rcore;
   DLM_Histo<float>* GhettoFemto_mT_kstar;
   DLM_Histo<float>* Ghetto_mT_costh;
   DLM_Histo<float>* GhettoSP_pT_th;
@@ -189,6 +198,8 @@ public:
   DLM_Histo<float>* Ghetto_RR_AngleRcP2;
   DLM_Histo<float>* Ghetto_RR_AngleP1P2;
 
+  DLM_Histo<float>* Ghetto_ScatteringAngle;
+
   //pp / pr / rp / rr
   unsigned GhettoFemtoPrimReso[4];
   unsigned GhettoPrimReso[4];
@@ -197,6 +208,8 @@ public:
 
   DLM_CleverMcLevyResoTM* Old_source;
   DLM_CleverMcLevyResoTM* SetUp_RSM;
+  DLM_CleverMcLevyResoTM* SetUp_RSM_UNI;
+  DLM_CleverMcLevyResoTM* SetUp_RSM_BB;
   std::vector<float*>* Buffer_RSM;
 
 double GHETTO_ResoAbundance[2];
@@ -221,6 +234,8 @@ private:
   bool ProperTau;
   bool EqualFsiTau;
   float ThermalKick;
+  bool PropagateMother;
+//THIS SHOULD BE FIX BY THE PARTICLE LIST
   unsigned char SDIM;
 //bug prone: if this is smaller then SDIM, we are up for trouble!
   unsigned short EMULT;

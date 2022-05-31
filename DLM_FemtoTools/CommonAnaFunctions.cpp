@@ -11,6 +11,9 @@
 #include "DLM_WfModel.h"
 #include "DLM_Random.h"
 #include "DLM_HistoAnalysis.h"
+#include "CECA.h"
+#include "TREPNI.h"
+#include "DLM_RootWrapper.h"
 
 #include "TString.h"
 #include "TH2F.h"
@@ -227,7 +230,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
         //EPOS, 2 is with fixed mass, 3 is with EPOS mass, 4 is 3 body with fixed mass, 5 is 3 body with EPOS mass
         else{
 //printf("Hello 2\n");
-            const double k_CutOff = int(int(SourceVar)/10)*10.;
+            const double k_CutOff = fabs(int(int(SourceVar)/10)*10.);
             Float_t k_D;
             Float_t fP1;
             Float_t fP2;
@@ -263,15 +266,22 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
                 T_EposDisto_p_pReso->GetEntry(uEntry);
                 Tau1 = 0;
                 Tau2 = 1.65;
-                if(SourceVar%100==2){
+                if(fabs(SourceVar%100)==2){
                     fM2 = 1362;
                 }
                 if(k_D>k_CutOff) continue;
                 RanVal1 = RanGen.Exponential(fM2/(fP2*Tau2));
-                CleverMcLevyResoTM[0].AddBGT_PR(RanVal1,-cos(AngleRcP2));
-                CleverMcLevyResoTM[0].AddBGT_RP(RanVal1,cos(AngleRcP2));
-                //CleverMcLevyResoTM[0].AddBGT_PR(RanVal1,cos(AngleRcP2));
-                //CleverMcLevyResoTM[0].AddBGT_RP(RanVal1,-cos(AngleRcP2));
+                //wrong sign (e.g. SourceVar==202)
+                if(SourceVar>0){
+                  CleverMcLevyResoTM[0].AddBGT_PR(RanVal1,-cos(AngleRcP2));
+                  CleverMcLevyResoTM[0].AddBGT_RP(RanVal1,cos(AngleRcP2));
+                }
+                //correct sign (e.g. SourceVar==-202)
+                else{
+                  CleverMcLevyResoTM[0].AddBGT_PR(RanVal1,cos(AngleRcP2));
+                  CleverMcLevyResoTM[0].AddBGT_RP(RanVal1,-cos(AngleRcP2));
+                }
+
             }
             delete F_EposDisto_p_pReso;
 
@@ -295,7 +305,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
                 T_EposDisto_pReso_pReso->GetEntry(uEntry);
                 Tau1 = 1.65;
                 Tau2 = 1.65;
-                if(SourceVar%100==2){
+                if(fabs(SourceVar%100)==2){
                     fM1 = 1362;
                     fM2 = 1362;
                 }
@@ -2920,6 +2930,8 @@ void DLM_CommonAnaFunctions::GetPurities_L(const TString& DataSample, const int&
         else if(Variation==1) PurityLambda = 0.936;//spline fits 4th June 2020
         else if(Variation==2) PurityLambda = 0.936-0.006;//with uncertainties
         else if(Variation==3) PurityLambda = 0.936+0.006;//with uncertainties
+        else if(Variation==4) PurityLambda = 0.953;//the purity as published in PLB (lower limit)
+        else if(Variation==5) PurityLambda = 0.963;//the purity as published in PLB (upper limit)
         else if(Variation==-1) PurityLambda = 1.0;//use for SB corrected correlations
         else PurityLambda = 0.9595;
     }
@@ -3014,7 +3026,7 @@ void DLM_CommonAnaFunctions::GetFractions_p(const TString& DataSample, const int
         pp_f1 = 0.125;
     }
     //Variation reflects the mT bin
-    else if("pp13TeV_HM_BernieSource"){
+    else if(DataSample=="pp13TeV_HM_BernieSource"){
       std::vector<double> pp_primary = { 0.82, 0.81, 0.81, 0.81, 0.81, 0.82, 0.83 };
       pp_f0 = pp_primary.at((Variation/10)%10);
       pp_f1 = 0.7*(1.-pp_f0);
@@ -3061,6 +3073,7 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
         case 4 : Modify_SigL=1.4; break;
         default : Modify_SigL=1; break;
     }
+    //this gives info about ratio of Xim to Xi0, absolute as we now assume it to be 50:50
     switch((Variation/10)%3){
         case 0 : Modify_XiL=1; break;
         case 1 : Modify_XiL=0.8;break;
@@ -3069,6 +3082,7 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
     }
     //this only works assuming zero material
     //do not use for newer interations!
+    //i.e. the 0.95 variation comes from the lower pT, which results in a bit different primary fraction
     switch((Variation/10)/3){
         case 0 : Modify_PrimFrac=1; break;
         case 1 : Modify_PrimFrac=0.95;break;
@@ -3230,13 +3244,15 @@ void DLM_CommonAnaFunctions::SetUpLambdaPars_pXim(const TString& DataSample, con
     lambda_pars[2] =    Purities_p[0]*Fraction_p[0]*Purities_Xim[2]*Fraction_Xim[2];
     lambda_pars[4] =    Purities_p[0]*Purities_Xim[4]+Purities_p[3]*Purities_Xim[0]+Purities_p[3]*Purities_Xim[4];
     lambda_pars[3] =    1.-lambda_pars[0]-lambda_pars[1]-lambda_pars[2]-lambda_pars[4];
-
-    //double SUM=0;
-    //for(unsigned uLam=0; uLam<5; uLam++){
-    //    printf("λ(pΞ)_%u = %.1f\n",uLam,lambda_pars[uLam]*100.);
-    //    SUM+=lambda_pars[uLam]*100.;
-    //}
-    //printf("SUM: %.1f\n------------\n",SUM);
+/*
+    double SUM=0;
+    printf("pp * fp * pxi * fxi = %.3f * %.3f * %.3f * %.3f\n",Purities_p[0],Fraction_p[0],Purities_Xim[0],Fraction_Xim[0]);
+    for(unsigned uLam=0; uLam<5; uLam++){
+        printf("λ(pΞ)_%u = %.1f\n",uLam,lambda_pars[uLam]*100.);
+        SUM+=lambda_pars[uLam]*100.;
+    }
+    printf("SUM: %.1f\n------------\n",SUM);
+    */
 }
 
 //        DataPeriod=="pp13TeV"?  :
@@ -3859,6 +3875,187 @@ DLM_CleverMcLevyResoTM* DLM_CommonAnaFunctions::GaussCoreRsm_LK(const int& Sourc
   return MagicSource;
 }
 
+
+//the cut off scale in k*, for which the angular distributions from EPOS
+//are evaluated. 200 MeV works okay, you can go up to 300 MeV for systematic checks
+const double k_CutOff = 200;
+
+//to be used for the NTuple later on
+Float_t k_D;
+Float_t fP1;
+Float_t fP2;
+Float_t fM1;
+Float_t fM2;
+Float_t Tau1;
+Float_t Tau2;
+Float_t AngleRcP1;
+Float_t AngleRcP2;
+Float_t AngleP1P2;
+//random generator dimi style. The input is incompatible with the ROOT random generator,
+//do not mix and match, do not ask me how I know this. Ask Bernie.
+//11 is the seed, you can change that to you favorite number
+DLM_Random RanGen(11);
+//dummies to save random shit
+double RanVal1;
+double RanVal2;
+double RanVal3;
+double RanCos;
+double MeanP1=0;
+
+
+
+
+
+
+
+DLM_CleverMcLevyResoTM* DLM_CommonAnaFunctions::GaussCoreRsm_pK(const int& SourceVar){
+  DLM_CleverMcLevyResoTM* MagicSource = new DLM_CleverMcLevyResoTM();
+  MagicSource->InitStability(1,2-1e-6,2+1e-6);
+  MagicSource->InitScale(38,0.15,2.0);
+  MagicSource->InitRad(257*2,0,64);
+  MagicSource->InitType(2);
+  MagicSource->SetUpReso(0,0.6422);
+  MagicSource->SetUpReso(1,0.476);
+
+  const double k_CutOff = int(int(SourceVar)/10)*10.;
+  const int SVAR = SourceVar%10;
+  int PPid,PRid,RPid,RRid;
+  //EPOS
+  if(SVAR==0){
+    PPid = 0;
+    PRid = 1;
+    RPid = 10;
+    RPid = 11;
+  }
+  //CECA
+  else if(SVAR==1){
+    PPid = 100;
+    PRid = 101;
+    RPid = 110;
+    RPid = 111;
+  }
+  else{
+    printf("\033[1;31mERROR:\033[0m Unknown source variation for LK\n");
+    delete MagicSource;
+    return NULL;
+  }
+
+  Float_t Type;
+  Float_t k_D;
+  Float_t fP1;
+  Float_t fP2;
+  Float_t fM1;
+  Float_t fM2;
+  Float_t Tau1;
+  Float_t Tau2;
+  Float_t AngleRcP1;
+  Float_t AngleRcP2;
+  Float_t AngleP1P2;
+  DLM_Random RanGen(11);
+  double RanVal1;
+  double RanVal2;
+  double RanVal3;
+
+  TFile* F_EposDisto_pReso_Kaon = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/ForRamona_pReso_Kaon.root");
+  TNtuple* T_EposDisto_pReso_Kaon = (TNtuple*)F_EposDisto_pReso_Kaon->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_pReso_Kaon = T_EposDisto_pReso_Kaon->GetEntries();
+  T_EposDisto_pReso_Kaon->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("P1",&fP1);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("P2",&fP2);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("M1",&fM1);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("M2",&fM2);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  gROOT->cd();
+  //iterate over the ntuple
+  for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Kaon; uEntry++){
+      //get each entry
+      T_EposDisto_pReso_Kaon->GetEntry(uEntry);
+      //disregard the entry of you are outside the desired k*
+      if(k_D>k_CutOff) continue;
+      Tau1 = 1.65;
+      Tau2 = 0;
+      fM1 = 1362;
+      RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+      MagicSource->AddBGT_RP(RanVal1,cos(AngleRcP1));
+  }
+  delete T_EposDisto_pReso_Kaon;
+  delete F_EposDisto_pReso_Kaon;
+
+  TFile* F_EposDisto_p_KaonReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/ForRamona_p_KaonReso.root");
+  TNtuple* T_EposDisto_p_KaonReso = (TNtuple*)F_EposDisto_p_KaonReso->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_p_KaonReso = T_EposDisto_p_KaonReso->GetEntries();
+  T_EposDisto_p_KaonReso->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_p_KaonReso->SetBranchAddress("P1",&fP1);
+  T_EposDisto_p_KaonReso->SetBranchAddress("P2",&fP2);
+  T_EposDisto_p_KaonReso->SetBranchAddress("M1",&fM1);
+  T_EposDisto_p_KaonReso->SetBranchAddress("M2",&fM2);
+  T_EposDisto_p_KaonReso->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_p_KaonReso->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_p_KaonReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_p_KaonReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_p_KaonReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  gROOT->cd();
+  //iterate over the ntuple
+  for(unsigned uEntry=0; uEntry<N_EposDisto_p_KaonReso; uEntry++){
+      //get each entry
+      T_EposDisto_p_KaonReso->GetEntry(uEntry);
+      //disregard the entry of you are outside the desired k*
+      if(k_D>k_CutOff) continue;
+      Tau1 = 0;
+      Tau2 = 3.66;
+      fM2 = 1054;
+      RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+      MagicSource->AddBGT_PR(RanVal2,cos(AngleRcP2));
+  }
+  delete T_EposDisto_p_KaonReso;
+  delete F_EposDisto_p_KaonReso;
+
+
+  TFile* F_EposDisto_pReso_KaonReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/ForRamona_pReso_KaonReso.root");
+  //TFile* F_EposDisto_pReso_KaonReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_dReso.root",GetCernBoxDimi()));
+
+  TNtuple* T_EposDisto_pReso_KaonReso = (TNtuple*)F_EposDisto_pReso_KaonReso->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_pReso_KaonReso = T_EposDisto_pReso_KaonReso->GetEntries();
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("P1",&fP1);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("P2",&fP2);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("M1",&fM1);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("M2",&fM2);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  gROOT->cd();
+  //iterate over the ntuple
+  for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_KaonReso; uEntry++){
+      //get each entry
+      T_EposDisto_pReso_KaonReso->GetEntry(uEntry);
+      //disregard the entry of you are outside the desired k*
+      if(k_D>k_CutOff) continue;
+      Tau1 = 1.65;
+      fM1 = 1362;
+      RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+      Tau2 = 3.66;
+      fM2 = 1054;
+      RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+      //check the signs
+      MagicSource->AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+  }
+  delete T_EposDisto_pReso_KaonReso;
+  delete F_EposDisto_pReso_KaonReso;
+
+  MagicSource->InitNumMcIter(1000000);
+
+  return MagicSource;
+}
+
+
+
 void DLM_CommonAnaFunctions::SetCatsFilesFolder(const TString& folder){
     CatsFilesFolder[0] = folder;
 }
@@ -3957,6 +4154,12 @@ void RootFile_DlmSource(const TString& RootFileName, const TString& GraphName, C
 }
 
 double Get_reff(TH1F* hsource, const float lambda, const float CEI){
+  TF1* fit_temp;
+  double result = Get_reff_TF1(hsource,fit_temp,lambda,CEI);
+  delete fit_temp;
+  return result;
+}
+double Get_reff_TF1(TH1F* hsource, TF1* fsource, const float lambda, const float CEI){
   TH1F* hfit4325 = (TH1F*)hsource->Clone("hfit4325");
   hfit4325->Scale(1./hfit4325->Integral(),"width");
 
@@ -3965,14 +4168,494 @@ double Get_reff(TH1F* hsource, const float lambda, const float CEI){
   GetCentralInterval(*hfit4325, CEI, lowerlimit, upperlimit, true);
 
   TF1* fit4325 = new TF1("fit4325","[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))+1.-[0]",lowerlimit,upperlimit);
-  fit4325->FixParameter(1,lambda);
+  fit4325->FixParameter(0,lambda);
   fit4325->SetParameter(1,hfit4325->GetMean()/2.3);
   fit4325->SetParLimits(1,hfit4325->GetMean()/10.,hfit4325->GetMean()*2.);
 
   hfit4325->Fit(fit4325,"Q, S, N, R, M");
 
+  fsource = fit4325;
+  delete hfit4325;
+
   return fit4325->GetParameter(1);
 }
+
+double GetRcore(DLM_CleverMcLevyResoTM& MagicSource, const double& reff){
+  const unsigned NumRadBins = 256;
+  const double rMin = 0;
+  const double rMax = 32;
+  double rcore = reff;
+  const double Eps = reff*0.001;
+  TH1F* h_rstar = new TH1F("fgsgsdfg","fgsgsdfg",NumRadBins,rMin,rMax);
+  double reff_fit;
+  while(true){
+    for(unsigned uBin=0; uBin<NumRadBins; uBin++){
+      double rstar = h_rstar->GetBinCenter(uBin+1);
+      double parameters[2];
+      parameters[0] = rcore;
+      parameters[1] = 2.0;
+      double val;
+      val = MagicSource.RootEval(&rstar,parameters);
+      h_rstar->SetBinContent(uBin+1,val);
+      h_rstar->SetBinError(uBin+1,1e-3);
+    }
+    reff_fit = Get_reff(h_rstar);
+    if(fabs(reff_fit-reff)>Eps){
+      if(reff_fit>reff)
+      rcore *= (reff/reff_fit);
+    }
+    else break;
+  }
+  delete h_rstar;
+  return rcore;
+}
+
+
+
+
+
+void SetUp_RSM_Flat(DLM_CleverMcLevyResoTM& MagicSource, const double frac1, const double frac2, const double MassP1, const double MassP2,
+  const double MassR1, const double MassR2, const double TauR1, const double TauR2,
+  const double TIMEOUT, const int flag){
+
+  //tested that changing this by 50% makes NO difference!
+  const double MomSpread = 850*1;
+  const double Disp = 0.8;
+
+  BasicSetUp_MS(MagicSource,frac1,frac2);
+
+  TREPNI Database(0);
+  Database.SetSeed(11);
+  std::vector<TreParticle*> ParticleList;
+  ParticleList.push_back(Database.NewParticle("Part1"));
+  ParticleList.push_back(Database.NewParticle("Part2"));
+  ParticleList.push_back(Database.NewParticle("Pion"));
+
+  if(frac1) ParticleList.push_back(Database.NewParticle("Reso1"));
+  if(frac2) ParticleList.push_back(Database.NewParticle("Reso2"));
+
+  for(TreParticle* prt : ParticleList){
+    if(prt->GetName()=="Part1"){
+      prt->SetMass(MassP1);
+      prt->SetAbundance((1.-frac1));
+    }
+    else if(prt->GetName()=="Part2"){
+      prt->SetMass(MassP2);
+      prt->SetAbundance((1.-frac2));
+    }
+    else if(prt->GetName()=="Pion"){
+      prt->SetMass(Mass_pic);
+      prt->SetAbundance(0);
+    }
+    else if(prt->GetName()=="Reso1"&&frac1){
+      prt->SetMass(MassR1);
+      prt->SetAbundance(frac1);
+      prt->SetWidth(hbarc/TauR1);
+
+      prt->NewDecay();
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Part1"));
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+      prt->GetDecay(0)->SetBranching(100);
+    }
+    else if(prt->GetName()=="Reso2"&&frac2){
+      prt->SetMass(MassR2);
+      prt->SetAbundance(frac2);
+      prt->SetWidth(hbarc/TauR2);
+
+      prt->NewDecay();
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Part2"));
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+      prt->GetDecay(0)->SetBranching(100);
+    }
+    prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
+  }
+
+  std::vector<std::string> ListOfParticles;
+  ListOfParticles.push_back("Part1");
+  ListOfParticles.push_back("Part2");
+  CECA Ivana(Database,ListOfParticles);
+  Ivana.SetTargetStatistics(10);
+  Ivana.SetEventMult(2);
+  Ivana.SetSourceDim(2);
+  Ivana.SetThreadTimeout(TIMEOUT);
+  Ivana.SetFemtoRegion(100);
+  Ivana.EqualizeFsiTime(true);
+  Ivana.SetPropagateMother(false);
+  Ivana.GHETTO_EVENT = true;
+
+  if(flag%10==0){
+    Ivana.SetDisplacement(Disp);
+    Ivana.SetHadronization(0);
+  }
+  else{
+    Ivana.SetDisplacement(0);
+    Ivana.SetHadronization(Disp);
+  }
+
+  Ivana.SetUp_RSM = &MagicSource;
+  Ivana.GoBabyGo(0);
+}
+
+
+
+void BasicSetUp_MS(DLM_CleverMcLevyResoTM& MagicSource, double frac1, double frac2){
+  MagicSource.InitStability(1,2-1e-6,2+1e-6);
+  MagicSource.InitScale(38,0.15,2.0);
+  MagicSource.InitRad(257*2,0,64);
+  MagicSource.InitType(2);
+  MagicSource.SetUpReso(0,frac1);
+  MagicSource.SetUpReso(1,frac2);
+  MagicSource.InitNumMcIter(1000000);
+}
+
+
+void SetUp_RSMflat_pp(DLM_CleverMcLevyResoTM& MagicSource){
+
+  const double frac1 = 0.6422;
+  const double frac2 = 0.6422;
+  BasicSetUp_MS(MagicSource,frac1,frac2);
+  const double Tau_Proton = 1.65;
+  const double Mass_ProtonReso = 1362;
+  const double q_CutOff = 200;
+
+  SetUp_RSM_Flat(MagicSource, frac1, frac2, Mass_p, Mass_p,
+    Mass_ProtonReso, Mass_ProtonReso, Tau_Proton, Tau_Proton,
+    16, 0);
+
+}
+
+//const double FracProtonReso = 0.6422*1;
+//const double FracLambdaReso = 0.6438*1;
+void SetUp_RSM_pp(DLM_CleverMcLevyResoTM& MagicSource, const TString InputFolder, const int flag){
+  Float_t k_D;
+  Float_t fP1;
+  Float_t fP2;
+  Float_t fM1;
+  Float_t fM2;
+  Float_t Tau1;
+  Float_t Tau2;
+  Float_t AngleRcP1;
+  Float_t AngleRcP2;
+  Float_t AngleP1P2;
+  DLM_Random RanGen(11);
+  double RanVal1;
+  double RanVal2;
+  double RanVal3;
+
+  const double frac1 = 0.6422;
+  const double frac2 = 0.6422;
+  BasicSetUp_MS(MagicSource,frac1,frac2);
+  const double Tau_Proton = 1.65;
+  const double Mass_ProtonReso = 1362;
+  const double q_CutOff = 200;
+
+
+  TFile* F_EposDisto_p_pReso;
+  F_EposDisto_p_pReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_p_pReso.root",InputFolder.Data()));
+  TNtuple* T_EposDisto_p_pReso = (TNtuple*)F_EposDisto_p_pReso->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_p_pReso = T_EposDisto_p_pReso->GetEntries();
+  T_EposDisto_p_pReso->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_p_pReso->SetBranchAddress("P1",&fP1);
+  T_EposDisto_p_pReso->SetBranchAddress("P2",&fP2);
+  T_EposDisto_p_pReso->SetBranchAddress("M1",&fM1);
+  T_EposDisto_p_pReso->SetBranchAddress("M2",&fM2);
+  T_EposDisto_p_pReso->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_p_pReso->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_p_pReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_p_pReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_p_pReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_p_pReso; uEntry++){
+    T_EposDisto_p_pReso->GetEntry(uEntry);
+    Tau1 = 0;
+    Tau2 = Tau_Proton;
+    fM2 = Mass_ProtonReso;
+    if(k_D>q_CutOff) continue;
+    RanVal1 = RanGen.Exponential(fM2/(fP2*Tau2));
+    //if(flag/10==0){
+      //this is with the correct sign
+      if(flag%10==1){
+        MagicSource.AddBGT_PR(RanVal1,-cos(AngleRcP2));
+        MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP2));
+      }
+      else{
+        MagicSource.AddBGT_PR(RanVal1,cos(AngleRcP2));
+        MagicSource.AddBGT_RP(RanVal1,-cos(AngleRcP2));
+      }
+  }
+  delete F_EposDisto_p_pReso;
+
+  TFile* F_EposDisto_pReso_pReso;
+  F_EposDisto_pReso_pReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_pReso.root",InputFolder.Data()));
+  TNtuple* T_EposDisto_pReso_pReso = (TNtuple*)F_EposDisto_pReso_pReso->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_pReso_pReso = T_EposDisto_pReso_pReso->GetEntries();
+  T_EposDisto_pReso_pReso->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_pReso_pReso->SetBranchAddress("P1",&fP1);
+  T_EposDisto_pReso_pReso->SetBranchAddress("P2",&fP2);
+  T_EposDisto_pReso_pReso->SetBranchAddress("M1",&fM1);
+  T_EposDisto_pReso_pReso->SetBranchAddress("M2",&fM2);
+  T_EposDisto_pReso_pReso->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_pReso_pReso->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_pReso_pReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_pReso_pReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_pReso_pReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_pReso; uEntry++){
+      T_EposDisto_pReso_pReso->GetEntry(uEntry);
+      Tau1 = Tau_Proton;
+      Tau2 = Tau_Proton;
+      fM1 = Mass_ProtonReso;
+      fM2 = Mass_ProtonReso;
+      if(k_D>q_CutOff) continue;
+      RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+      RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+      MagicSource.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+  }
+  delete F_EposDisto_pReso_pReso;
+
+
+}
+
+
+void SetUp_RSMflat_pL(DLM_CleverMcLevyResoTM& MagicSource){
+
+  const double frac1 = 0.6422;
+  const double frac2 = 0.6438;
+  BasicSetUp_MS(MagicSource,frac1,frac2);
+  const double Tau_Proton = 1.65;
+  const double Tau_Lambda = 4.69;//4.69
+  const double Mass_ProtonReso = 1362;
+  const double Mass_LambdaReso = 1462;
+
+  SetUp_RSM_Flat(MagicSource, frac1, frac2, Mass_p, Mass_L,
+    Mass_ProtonReso, Mass_LambdaReso, Tau_Proton, Tau_Lambda,
+    16, 0);
+
+}
+
+void SetUp_RSM_pL(DLM_CleverMcLevyResoTM& MagicSource, const TString InputFolder, const int flag){
+  Float_t k_D;
+  Float_t fP1;
+  Float_t fP2;
+  Float_t fM1;
+  Float_t fM2;
+  Float_t Tau1;
+  Float_t Tau2;
+  Float_t AngleRcP1;
+  Float_t AngleRcP2;
+  Float_t AngleP1P2;
+  DLM_Random RanGen(11);
+  double RanVal1;
+  double RanVal2;
+  double RanVal3;
+
+  BasicSetUp_MS(MagicSource,0.6422,0.6438);
+  const double Tau_Proton = 1.65;
+  const double Tau_Lambda = 4.69;//4.69
+  const double Mass_ProtonReso = 1362;
+  const double Mass_LambdaReso = 1462;
+  const double q_CutOff = 200;
+
+  TFile* F_EposDisto_p_LamReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_p_LamReso.root",InputFolder.Data()));
+  TNtuple* T_EposDisto_p_LamReso = (TNtuple*)F_EposDisto_p_LamReso->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_p_LamReso = T_EposDisto_p_LamReso->GetEntries();
+  T_EposDisto_p_LamReso->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_p_LamReso->SetBranchAddress("P1",&fP1);
+  T_EposDisto_p_LamReso->SetBranchAddress("P2",&fP2);
+  T_EposDisto_p_LamReso->SetBranchAddress("M1",&fM1);
+  T_EposDisto_p_LamReso->SetBranchAddress("M2",&fM2);
+  T_EposDisto_p_LamReso->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_p_LamReso->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_p_LamReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_p_LamReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_p_LamReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_p_LamReso; uEntry++){
+      T_EposDisto_p_LamReso->GetEntry(uEntry);
+      Tau1 = 0;
+      Tau2 = Tau_Lambda;
+      fM2 = Mass_LambdaReso;
+      if(k_D>q_CutOff) continue;
+      RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+      MagicSource.AddBGT_PR(RanVal2,cos(AngleRcP2));
+  }
+  delete F_EposDisto_p_LamReso;
+
+  TFile* F_EposDisto_pReso_Lam = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_Lam.root",InputFolder.Data()));
+  TNtuple* T_EposDisto_pReso_Lam = (TNtuple*)F_EposDisto_pReso_Lam->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_pReso_Lam = T_EposDisto_pReso_Lam->GetEntries();
+  T_EposDisto_pReso_Lam->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_pReso_Lam->SetBranchAddress("P1",&fP1);
+  T_EposDisto_pReso_Lam->SetBranchAddress("P2",&fP2);
+  T_EposDisto_pReso_Lam->SetBranchAddress("M1",&fM1);
+  T_EposDisto_pReso_Lam->SetBranchAddress("M2",&fM2);
+  T_EposDisto_pReso_Lam->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_pReso_Lam->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_pReso_Lam->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_pReso_Lam->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_pReso_Lam->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Lam; uEntry++){
+      T_EposDisto_pReso_Lam->GetEntry(uEntry);
+      Tau1 = Tau_Proton;
+      Tau2 = 0;
+      fM1 = Mass_ProtonReso;
+      if(k_D>q_CutOff) continue;
+      RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+      MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP1));
+  }
+  delete F_EposDisto_pReso_Lam;
+
+  TFile* F_EposDisto_pReso_LamReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_LamReso.root",InputFolder.Data()));
+  TNtuple* T_EposDisto_pReso_LamReso = (TNtuple*)F_EposDisto_pReso_LamReso->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_pReso_LamReso = T_EposDisto_pReso_LamReso->GetEntries();
+  T_EposDisto_pReso_LamReso->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("P1",&fP1);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("P2",&fP2);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("M1",&fM1);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("M2",&fM2);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_LamReso; uEntry++){
+      T_EposDisto_pReso_LamReso->GetEntry(uEntry);
+      Tau1 = Tau_Proton;
+      Tau2 = Tau_Lambda;
+      fM1 = Mass_ProtonReso;
+      fM2 = Mass_LambdaReso;
+      if(k_D>q_CutOff) continue;
+      RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+      RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+      MagicSource.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+  }
+  delete F_EposDisto_pReso_LamReso;
+
+}
+
+
+void SetUp_RSMflat_pXi(DLM_CleverMcLevyResoTM& MagicSource){
+
+  const double frac1 = 0.6422;
+  const double frac2 = 0.0;
+  BasicSetUp_MS(MagicSource,frac1,frac2);
+  const double Tau_Proton = 1.65;
+  const double Mass_ProtonReso = 1362;
+
+  SetUp_RSM_Flat(MagicSource, frac1, frac2, Mass_p, Mass_Xim,
+    Mass_ProtonReso, 0, Tau_Proton, 0,
+    16, 0);
+
+}
+
+void SetUp_RSM_pXi(DLM_CleverMcLevyResoTM& MagicSource, const TString InputFolder, const int flag){
+
+  Float_t k_D;
+  Float_t fP1;
+  Float_t fP2;
+  Float_t fM1;
+  Float_t fM2;
+  Float_t Tau1;
+  Float_t Tau2;
+  Float_t AngleRcP1;
+  Float_t AngleRcP2;
+  Float_t AngleP1P2;
+  DLM_Random RanGen(11);
+  double RanVal1;
+  double RanVal2;
+  double RanVal3;
+
+  BasicSetUp_MS(MagicSource,0.6422,0.0);
+  const double Tau_Proton = 1.65;
+  const double Mass_ProtonReso = 1362;
+  const double q_CutOff = 200;
+
+  TFile* F_EposDisto_pReso_Xim = new TFile(InputFolder+"/CatsFiles/Source/EposAngularDist/EposDisto_pReso_Xim.root");
+  TNtuple* T_EposDisto_pReso_Xim = (TNtuple*)F_EposDisto_pReso_Xim->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_pReso_Xim = T_EposDisto_pReso_Xim->GetEntries();
+  T_EposDisto_pReso_Xim->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_pReso_Xim->SetBranchAddress("P1",&fP1);
+  T_EposDisto_pReso_Xim->SetBranchAddress("P2",&fP2);
+  T_EposDisto_pReso_Xim->SetBranchAddress("M1",&fM1);
+  T_EposDisto_pReso_Xim->SetBranchAddress("M2",&fM2);
+  T_EposDisto_pReso_Xim->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_pReso_Xim->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_pReso_Xim->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_pReso_Xim->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_pReso_Xim->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Xim; uEntry++){
+      T_EposDisto_pReso_Xim->GetEntry(uEntry);
+      Tau1 = 1.65;
+      Tau2 = 0;
+      fM1 = 1362;
+      if(k_D>q_CutOff) continue;
+      RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+      MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP1));
+  }
+  delete F_EposDisto_pReso_Xim;
+
+}
+
+void SetUp_RSMflat_pOmega(DLM_CleverMcLevyResoTM& MagicSource){
+
+  const double frac1 = 0.6422;
+  const double frac2 = 0.0;
+  BasicSetUp_MS(MagicSource,frac1,frac2);
+  const double Tau_Proton = 1.65;
+  const double Mass_ProtonReso = 1362;
+
+  SetUp_RSM_Flat(MagicSource, frac1, frac2, Mass_p, MassOmega,
+    Mass_ProtonReso, 0, Tau_Proton, 0,
+    16, 0);
+
+}
+
+void SetUp_RSM_pOmega(DLM_CleverMcLevyResoTM& MagicSource, const TString InputFolder, const int flag){
+
+  Float_t k_D;
+  Float_t fP1;
+  Float_t fP2;
+  Float_t fM1;
+  Float_t fM2;
+  Float_t Tau1;
+  Float_t Tau2;
+  Float_t AngleRcP1;
+  Float_t AngleRcP2;
+  Float_t AngleP1P2;
+  DLM_Random RanGen(11);
+  double RanVal1;
+  double RanVal2;
+  double RanVal3;
+
+  BasicSetUp_MS(MagicSource,0.6422,0.0);
+  const double Tau_Proton = 1.65;
+  const double Mass_ProtonReso = 1362;
+  const double q_CutOff = 200;
+
+  TFile* F_EposDisto_pReso_Omega = new TFile(InputFolder+"/CatsFiles/Source/EposAngularDist/EposDisto_pReso_Omega.root");
+  TNtuple* T_EposDisto_pReso_Omega = (TNtuple*)F_EposDisto_pReso_Omega->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_pReso_Omega = T_EposDisto_pReso_Omega->GetEntries();
+  T_EposDisto_pReso_Omega->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_pReso_Omega->SetBranchAddress("P1",&fP1);
+  T_EposDisto_pReso_Omega->SetBranchAddress("P2",&fP2);
+  T_EposDisto_pReso_Omega->SetBranchAddress("M1",&fM1);
+  T_EposDisto_pReso_Omega->SetBranchAddress("M2",&fM2);
+  T_EposDisto_pReso_Omega->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_pReso_Omega->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_pReso_Omega->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_pReso_Omega->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_pReso_Omega->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Omega; uEntry++){
+      T_EposDisto_pReso_Omega->GetEntry(uEntry);
+      Tau1 = 1.65;
+      Tau2 = 0;
+      fM1 = 1362;
+      if(k_D>q_CutOff) continue;
+      RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+      MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP1));
+  }
+  delete F_EposDisto_pReso_Omega;
+
+}
+
+
 
 
 /*
