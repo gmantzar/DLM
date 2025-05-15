@@ -601,6 +601,13 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS &Kitty, const TString &POT, const
     else if(POT == "Johann"){
         ExternalWF = Init_pp_Haidenbauer(CatsFilesFolder[0],Kitty,PotVar);
     }
+    else if (POT == "CD_BONN"){
+        cPotPars1S0 = new CATSparameters(CATSparameters::tPotential, 4, true);
+        cPotPars1S0->SetParameter(0, 1304.76);
+        cPotPars1S0->SetParameter(1, 2.607);
+        cPotPars1S0->SetParameter(2, -113.946);
+        cPotPars1S0->SetParameter(3, 0.9397);
+    }
     else
     {
         printf("\033[1;31mERROR:\033[0m Non-existing pp potential '%s'\n", POT.Data());
@@ -670,6 +677,10 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS &Kitty, const TString &POT, const
             uCh=2; Kitty.SetExternalWaveFunction(uCh, 1, ExternalWF[0][uCh][1], ExternalWF[1][uCh][1]);
             uCh=3; Kitty.SetExternalWaveFunction(uCh, 1, ExternalWF[0][uCh][1], ExternalWF[1][uCh][1]);
         }
+    }
+    else if(POT == "CD_BONN"){
+        if(cPotPars1S0)
+            Kitty.SetShortRangePotential(0, 0, DoubleGaussSum, *cPotPars1S0);
     }
     else
     {
