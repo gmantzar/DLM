@@ -639,9 +639,14 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS &Kitty, const TString &POT, const
     else if(POT == "Johann"){
         ExternalWF = Init_pp_Haidenbauer(CatsFilesFolder[0],Kitty,PotVar);
     }
-
     else if(POT == "Epelbaum"){
         ExternalWF = Init_pp_Epelbaum(CatsFilesFolder[0],Kitty,PotVar);
+    else if (POT == "CD_BONN"){
+        cPotPars1S0 = new CATSparameters(CATSparameters::tPotential, 4, true);
+        cPotPars1S0->SetParameter(0, 1304.76);
+        cPotPars1S0->SetParameter(1, 2.607);
+        cPotPars1S0->SetParameter(2, -113.946);
+        cPotPars1S0->SetParameter(3, 0.9397);
     }
     else
     {
@@ -667,7 +672,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS &Kitty, const TString &POT, const
       Kitty.SetPdgId(2212, 2212);
 
 
-    
+
     if(POT == "AV18_pn")
       Kitty.SetRedMass((Mass_p*Mass_n)/(Mass_p+Mass_n));
     else if(POT == "AV18_nn")
@@ -698,7 +703,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS &Kitty, const TString &POT, const
             Kitty.SetChannelWeight(1, 1. / 12.);
             Kitty.SetChannelWeight(2, 3. / 12.);
             Kitty.SetChannelWeight(3, 5. / 12.);
-    
+
         }
         else{
             Kitty.SetNumChannels(4);
@@ -714,7 +719,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS &Kitty, const TString &POT, const
             Kitty.SetChannelWeight(1, 1. / 12.);
             Kitty.SetChannelWeight(2, 3. / 12.);
             Kitty.SetChannelWeight(3, 5. / 12.);
-    
+
         }
     }
 
@@ -784,7 +789,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS &Kitty, const TString &POT, const
 
         Kitty.SetExternalWaveFunction(10, 0, ExternalWF[0][10][0], ExternalWF[1][10][0]);
         Kitty.SetExternalWaveFunction(11, 0, ExternalWF[0][11][0], ExternalWF[1][11][0]);
-    
+
     }
     else if(POT == "SW_s"){
         if (cPotPars1S0)
@@ -808,6 +813,10 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS &Kitty, const TString &POT, const
             Kitty.SetShortRangePotential(2, 1, SquareWell, *cPotPars3P1);
         if (cPotPars3P2)
             Kitty.SetShortRangePotential(3, 1, SquareWell, *cPotPars3P2);
+    }
+    else if(POT == "CD_BONN"){
+        if(cPotPars1S0)
+            Kitty.SetShortRangePotential(0, 0, DoubleGaussSum, *cPotPars1S0);
     }
     else
     {
@@ -938,7 +947,7 @@ void DLM_CommonAnaFunctions::SetUpCats_ppic(CATS &Kitty, const TString &POT, con
             CleverMcLevyResoTM[6].InitRad(257 * 2, 0, 64);
             CleverMcLevyResoTM[6].InitType(2);
             CleverMcLevyResoTM[6].SetUpReso(0, 0.6438);
-            CleverMcLevyResoTM[6].SetUpReso(1, 0.682);            
+            CleverMcLevyResoTM[6].SetUpReso(1, 0.682);
         }
 
 
@@ -1742,7 +1751,7 @@ CLEAN_SetUpCats_pipi:;
 //   "NLO"
 //   "NLO_Coupled_S"
 //   "Usmani"
-//   "UsmaniPLB" as used Phys.Lett.B 850 (2024) 138550. 
+//   "UsmaniPLB" as used Phys.Lett.B 850 (2024) 138550.
 //              The PotVar corresponds to the point number of Tab. 1
 //              The NLO13(600) is 13, NLO19(600) is 19 and N2LO is 20
 //   "Chiral_Coupled_SPD"
@@ -2185,7 +2194,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS &Kitty, const TString &POT, const
         singlet = inputString.substr(underscorePos + 1, andPos - underscorePos - 1);
         triplet = inputString.substr(andPos + 5);
         ExternalWF = Init_pL_Haidenbauer2023(CatsFilesFolder[0],Kitty,singlet.c_str(),triplet.c_str());
-        NumChannels = 16;        
+        NumChannels = 16;
     }
     else if (POT == "Usmani")
     {
@@ -2243,7 +2252,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS &Kitty, const TString &POT, const
             PotPars3S1[1] = 2024.79;
             PotPars3S1[2] = 0.428883;
             PotPars3S1[3] = 0.238985;
-        }        
+        }
         else if(PotVar==5){
             PotPars1S0[1] = 2099.52;
             PotPars1S0[2] = 0.518209;
@@ -2251,7 +2260,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS &Kitty, const TString &POT, const
             PotPars3S1[1] = 1932.33;
             PotPars3S1[2] = 0.456657;
             PotPars3S1[3] = 0.231787;
-        }       
+        }
         else if(PotVar==6){
             PotPars1S0[1] = 2169.98;
             PotPars1S0[2] = 0.506783;
@@ -2259,7 +2268,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS &Kitty, const TString &POT, const
             PotPars3S1[1] = 2129.60;
             PotPars3S1[2] = 0.438970;
             PotPars3S1[3] = 0.227010;
-        }    
+        }
         else if(PotVar==7){
             PotPars1S0[1] = 1976.88;
             PotPars1S0[2] = 0.520216;
@@ -2267,7 +2276,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS &Kitty, const TString &POT, const
             PotPars3S1[1] = 2057.49;
             PotPars3S1[2] = 0.443663;
             PotPars3S1[3] = 0.230643;
-        }    
+        }
         else if(PotVar==8){
             PotPars1S0[1] = 2098.16;
             PotPars1S0[2] = 0.512709;
@@ -2275,7 +2284,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS &Kitty, const TString &POT, const
             PotPars3S1[1] = 1957.61;
             PotPars3S1[2] = 0.434795;
             PotPars3S1[3] = 0.241739;
-        }    
+        }
         else if(PotVar==13){
             PotPars1S0[1] = 2155.97;
             PotPars1S0[2] = 0.514819;
@@ -2283,7 +2292,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS &Kitty, const TString &POT, const
             PotPars3S1[1] = 2176.83;
             PotPars3S1[2] = 0.432072;
             PotPars3S1[3] = 0.227458;
-        }   
+        }
         else if(PotVar==19){
             PotPars1S0[1] = 1950.83;
             PotPars1S0[2] = 0.532720;
@@ -2291,7 +2300,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS &Kitty, const TString &POT, const
             PotPars3S1[1] = 2009.28;
             PotPars3S1[2] = 0.449633;
             PotPars3S1[3] = 0.230304;
-        }  
+        }
         else if(PotVar==20){
             PotPars1S0[1] = 2098.16;
             PotPars1S0[2] = 0.512709;
@@ -2299,7 +2308,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS &Kitty, const TString &POT, const
             PotPars3S1[1] = 1957.61;
             PotPars3S1[2] = 0.434795;
             PotPars3S1[3] = 0.241739;
-        }  
+        }
 
         cPotPars1S0 = new CATSparameters(CATSparameters::tPotential, 4, true);
         cPotPars1S0->SetParameters(PotPars1S0);
@@ -2369,7 +2378,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS &Kitty, const TString &POT, const
                     //{
                         //this produces same Ck for both !!!!
                         //Kitty.SetExternalWaveFunction(uCh, 2, ExternalWF[0][uCh][2], ExternalWF[1][uCh][2]);
-                    //}                   
+                    //}
 
             }
             else if(POT.BeginsWith("Chiral2023_")){
@@ -2394,7 +2403,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS &Kitty, const TString &POT, const
                 while (std::getline(ss3S1, token3S1, separator[0])) {
                     tokens3S1.push_back(token3S1);
                 }
-                
+
                 if(token1S0<4){
                     printf("\033[1;31mERROR:\033[0m Something wrong with the pL set up (%s)!\n",singlet.c_str());
                 }
@@ -2418,7 +2427,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS &Kitty, const TString &POT, const
                     if(tokens3S1.at(uLen)=="elastic"){
                         ElasticOnly3S1 = true;
                     }
-                }  
+                }
 
     //main channels:
     //0: 1S0+1P1
@@ -2451,14 +2460,14 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS &Kitty, const TString &POT, const
                     if(uCh==0)
                         {Kitty.SetExternalWaveFunction(uCh, 0, ExternalWF[0][uCh][0], ExternalWF[1][uCh][0]);}
                     if(uCh==7 && !ElasticOnly1S0)
-                        {Kitty.SetExternalWaveFunction(uCh, 0, ExternalWF[0][uCh][0], ExternalWF[1][uCh][0]);}                  
+                        {Kitty.SetExternalWaveFunction(uCh, 0, ExternalWF[0][uCh][0], ExternalWF[1][uCh][0]);}
                 }
                 //the s-wave channels for the triplet
                 if(tokens3S1.at(3).find("s")!=std::string::npos){
                     if(uCh>=1 && uCh<=6)//main channels
                         {Kitty.SetExternalWaveFunction(uCh, 0, ExternalWF[0][uCh][0], ExternalWF[1][uCh][0]);}
                     if(uCh>=8 && uCh<=10 && !ElasticOnly3S1)//coupled channels
-                        {Kitty.SetExternalWaveFunction(uCh, 0, ExternalWF[0][uCh][0], ExternalWF[1][uCh][0]);}                   
+                        {Kitty.SetExternalWaveFunction(uCh, 0, ExternalWF[0][uCh][0], ExternalWF[1][uCh][0]);}
                 }
 
                 //the p-wave channels for the singlet
@@ -6446,7 +6455,7 @@ void DLM_CommonAnaFunctions::SetUpCats_Kd(CATS &Kitty, const TString &POT, const
         //double PotPars_AVG[4] = {676.1923588303322, 0.7595548889641572, -44.11395844823363, 1.3254079885988337};//V1
         //double PotPars_AVG[4] = {677.6412964551082, 0.7649742727111178, -46.04483165662934, 1.3250780448057782};//V2
         double PotPars_AVG[4] = {121.19992348368771, 0.2945870040375218, 29.909893773423107, 1.3329202449286048};//V3
-        
+
         cPotPars_AVG = new CATSparameters(CATSparameters::tPotential, 8, true);
         cPotPars_AVG->SetParameters(PotPars_AVG);
     }
@@ -6459,13 +6468,13 @@ void DLM_CommonAnaFunctions::SetUpCats_Kd(CATS &Kitty, const TString &POT, const
         //double PotPars_AVG[4] = {369.4094817373952, 0.7847035161927353, -125.73561350111179, 0.7507974357114263};//V1
         double PotPars_AVG[4] = {362.7384262781105, 0.7962158970471339, -130.77196423166328, 0.7685517499557406};//V2
         cPotPars_AVG = new CATSparameters(CATSparameters::tPotential, 8, true);
-        cPotPars_AVG->SetParameters(PotPars_AVG);    
+        cPotPars_AVG->SetParameters(PotPars_AVG);
     }
     //square well potential,see mail from Johann @ CERN on 27.11.2024
     else if(POT == "SW_ER"){
         double PotPars_AVG[2] = {9.70, 2.14};
         cPotPars_AVG = new CATSparameters(CATSparameters::tPotential, 8, true);
-        cPotPars_AVG->SetParameters(PotPars_AVG);   
+        cPotPars_AVG->SetParameters(PotPars_AVG);
     }
     else
     {
@@ -6520,7 +6529,7 @@ CLEAN_SetUpCats_Kd:;
 //if POT=="Gauss":
 //  a positive PotVar means pi^+ d
 //  a negative means pi^- d
-//  -1 is the -0.037 fm of the real part as taken from Nuclear Physics A 872 (2011) 69–116 
+//  -1 is the -0.037 fm of the real part as taken from Nuclear Physics A 872 (2011) 69–116
 void DLM_CommonAnaFunctions::SetUpCats_pi_d(CATS &Kitty, const TString &POT, const TString &SOURCE, const int &PotVar, const int &SourceVar)
 {
 
@@ -6753,7 +6762,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pi_d(CATS &Kitty, const TString &POT, con
     else if(POT == "Gauss"){
         double PotPars[2] = {273.0806, 0.3778127};
         cPotPars = new CATSparameters(CATSparameters::tPotential, 2, true);
-        cPotPars->SetParameters(PotPars);    
+        cPotPars->SetParameters(PotPars);
     }
     //else if (POT == "DG_ER")
     //{
@@ -6765,7 +6774,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pi_d(CATS &Kitty, const TString &POT, con
     //{
     //    double PotPars_AVG[4] = {0, 1, 0, 1};
     //    cPotPars_AVG = new CATSparameters(CATSparameters::tPotential, 8, true);
-    //    cPotPars_AVG->SetParameters(PotPars_AVG);    
+    //    cPotPars_AVG->SetParameters(PotPars_AVG);
     //}
     else
     {
@@ -8640,7 +8649,7 @@ void SetUpKdpPars(TF1*& fitfun, int Mode, double KdpFitMax){
         if(low_mean < 0.1) low_mean = 0.1;
         fitfun->SetParLimits(uP*3,low_mean,fitfun->GetParameter(uP*3)*8.);
     }
-    
+
     for(unsigned uP=0; uP<6; uP++){
       double mu = fitfun->GetParameter(0+uP*3);
       fitfun->SetParameter(1+uP*3,mu*0.4);
@@ -8840,8 +8849,8 @@ bool GetScattParameters(CATS& Kitty, double& ScatLen, double& EffRan, TH1F*& hFi
     hFit->SetBinError(uMom+1,1.);
     LAST_POINT = CURRENT_POINT;
   }
-  TF1* fitSP2; 
-  TF1* fitSP4; 
+  TF1* fitSP2;
+  TF1* fitSP4;
   TF1* fitSP6;
 
 
@@ -8855,7 +8864,7 @@ bool GetScattParameters(CATS& Kitty, double& ScatLen, double& EffRan, TH1F*& hFi
   fitSP2->FixParameter(0,Kitty.GetQ1Q2()*Kitty.GetRedMass());
   fitSP4->FixParameter(0,Kitty.GetQ1Q2()*Kitty.GetRedMass());
   fitSP6->FixParameter(0,Kitty.GetQ1Q2()*Kitty.GetRedMass());
-  
+
 
   double inv_f0 = ScatLen==0?0:1./ScatLen;
   if(Fixf0) {fitSP2->FixParameter(1,inv_f0);fitSP4->FixParameter(1,inv_f0);fitSP6->FixParameter(1,inv_f0);}
@@ -9362,7 +9371,7 @@ TFile fTest(BaseFileName + "fTEST.root","recreate");
 
                 hToFit->SetName(TString::Format("hToFit_%u_%.0f",uMt,dlmMtKstarRstar.GetBinCenter(CecaStyle?0:1,uKstar)));
                 fit_ptr->SetName(TString::Format("fit_ptr_%u_%.0f",uMt,dlmMtKstarRstar.GetBinCenter(CecaStyle?0:1,uKstar)));
-                
+
                 hToFit->Write();
                 fit_ptr->Write();
 
