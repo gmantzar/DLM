@@ -11,8 +11,8 @@ using namespace std;
 DLM_Histo<complex<double>>*** Init_pp_Haidenbauer(const char* CatsFolder, CATS& Kitty, const int& TYPE);
 DLM_Histo<complex<double>>*** Init_pp_Haidenbauer(const char* CatsFolder, CATS* Kitty, const int& TYPE);
 
-DLM_Histo<complex<double>>*** Init_pp_Epelbaum(const char* CatsFolder, CATS& Kitty, const int& TYPE);
-DLM_Histo<complex<double>>*** Init_pp_Epelbaum(const char* CatsFolder, CATS* Kitty, const int& TYPE);
+DLM_Histo<complex<double>>*** Init_pp_Applebaum(const char* CatsFolder, CATS& Kitty, const int& TYPE);
+DLM_Histo<complex<double>>*** Init_pp_Applebaum(const char* CatsFolder, CATS* Kitty, const int& TYPE);
 
 DLM_Histo<complex<double>>*** Init_pL_Haidenbauer(const char* InputFolder, CATS& Kitty, const int& TYPE, const int& CUTOFF=600);
 DLM_Histo<complex<double>>*** Init_pL_Haidenbauer(const char* InputFolder, CATS* Kitty, const int& TYPE, const int& CUTOFF=600);

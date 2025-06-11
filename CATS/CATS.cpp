@@ -1846,6 +1846,8 @@ void CATS::KillTheCat(const int& Options){
 
     if(Notifications>=nAll)
         printf("\033[1;37m Stage 3:\033[0m Solving the Schroedinger equation...\n");
+    
+    printf(" GG: Computing the WF \n ");
     if(!ComputedWaveFunction) ComputeWaveFunction();
     if(Notifications>=nAll)
         printf("          \033[1;32mDone!\033[0m\n");
@@ -1888,6 +1890,7 @@ void CATS::ComputeWaveFunction(){
         return;
     }
 
+    printf("CATS alive 0 \n");
     if(!MomBinConverged){
         MomBinConverged = new bool [NumMomBins];
     }
@@ -1912,6 +1915,7 @@ void CATS::ComputeWaveFunction(){
             TotNumSteps++;
         }
     }
+    printf("CATS alive 1 \n");
     unsigned TotalNumberOfBins = NumMomBins*NumCh*MaxNumPW;
     TotNumSteps *= NumMomBins;
 
@@ -1962,6 +1966,7 @@ void CATS::ComputeWaveFunction(){
         Momentum = GetMomentum(uMomBin);
         //Momentum = 0.5*(MomBin[uMomBin]+MomBin[uMomBin+1]);
 
+        printf("CATS alive 2 \n");
         //perform the numerical computation
         if(WfType[usCh][usPW]==wSchroedinger){
             double* BufferWaveFunction;
@@ -2332,15 +2337,20 @@ DEBUG=-1;
 
             delete [] BufferRad;
             delete [] BufferWaveFunction;
+        printf("CATS alive 3 \n");
         }//end of the numerical computation
         //the case with external wave function
         else if(WfType[usCh][usPW]==wExternal){
+            printf("CATS alive 3.0 \n");
             SavedWaveFunBins[uMomBin][usCh][usPW] = ExternalWF[usCh][usPW]->GetNbins(1);
+            printf("CATS alive 3.0.1 \n");
             unsigned& SWFB = SavedWaveFunBins[uMomBin][usCh][usPW];
+            printf("CATS alive 3.1 \n");
 
             if(WaveFunRad[uMomBin][usCh][usPW]) delete [] WaveFunRad[uMomBin][usCh][usPW];
             WaveFunRad[uMomBin][usCh][usPW] = new double [SWFB+1];
 
+            printf("CATS alive 3.2 \n");
             if(WaveFunctionU[uMomBin][usCh][usPW]) delete [] WaveFunctionU[uMomBin][usCh][usPW];
             WaveFunctionU[uMomBin][usCh][usPW] = new complex<double> [SWFB];
 
@@ -2348,6 +2358,7 @@ DEBUG=-1;
                 //the input from outside is supposed to be in fermi, hence to conversion
                 WaveFunRad[uMomBin][usCh][usPW][uPoint] = ExternalWF[usCh][usPW]->GetBinLowEdge(1,uPoint)*FmToNu;
             }
+            printf("CATS alive 3.3 \n");
 
             double EvalPoint[2];
             EvalPoint[0] = GetMomentum(uMomBin);
@@ -2355,6 +2366,7 @@ DEBUG=-1;
                 EvalPoint[1] = ExternalWF[usCh][usPW]->GetBinCenter(1,uPoint);
                 WaveFunctionU[uMomBin][usCh][usPW][uPoint] = CPF[uMomBin]*ExternalWF[usCh][usPW]->Eval(EvalPoint)*FmToNu;
             }
+        printf("CATS alive 4 \n");
         }
         else if(WfType[usCh][usPW]==wSquareWell){
           double& sw_depth = Sw_Pars[usCh][usPW][0];
@@ -2379,6 +2391,7 @@ DEBUG=-1;
 //WORK IN PROGRESS !! ??
               WaveFunctionU[uMomBin][usCh][usPW][uPoint] = CPF[uMomBin];
           }
+        printf("CATS alive 5 \n");
         }
         else{
           if(Notifications>=nError)
