@@ -1964,6 +1964,7 @@ void CATS::ComputeWaveFunction(){
 
         //perform the numerical computation
         if(WfType[usCh][usPW]==wSchroedinger){
+            //printf("CATS alive Schroedinger beginning \n");
             double* BufferWaveFunction;
             double* BufferRad;
 
@@ -2332,9 +2333,11 @@ DEBUG=-1;
 
             delete [] BufferRad;
             delete [] BufferWaveFunction;
+        //printf("CATS alive Schroedinger\n");
         }//end of the numerical computation
         //the case with external wave function
         else if(WfType[usCh][usPW]==wExternal){
+            //printf("CATS alive External beginning \n");
             SavedWaveFunBins[uMomBin][usCh][usPW] = ExternalWF[usCh][usPW]->GetNbins(1);
             unsigned& SWFB = SavedWaveFunBins[uMomBin][usCh][usPW];
 
@@ -2355,6 +2358,7 @@ DEBUG=-1;
                 EvalPoint[1] = ExternalWF[usCh][usPW]->GetBinCenter(1,uPoint);
                 WaveFunctionU[uMomBin][usCh][usPW][uPoint] = CPF[uMomBin]*ExternalWF[usCh][usPW]->Eval(EvalPoint)*FmToNu;
             }
+        //printf("CATS alive External \n");
         }
         else if(WfType[usCh][usPW]==wSquareWell){
           double& sw_depth = Sw_Pars[usCh][usPW][0];
@@ -2379,6 +2383,7 @@ DEBUG=-1;
 //WORK IN PROGRESS !! ??
               WaveFunctionU[uMomBin][usCh][usPW][uPoint] = CPF[uMomBin];
           }
+        //printf("CATS alive SquareWell \n");
         }
         else{
           if(Notifications>=nError)
@@ -2388,24 +2393,31 @@ DEBUG=-1;
 
         //#pragma omp atomic
         CurrentStep++;
+        //printf("Current Step %i \n", CurrentStep);
         //#pragma omp critical
         {
             Progress = double(CurrentStep)/TotalSteps;
             pTotal = int(Progress*100);
             if(pTotal!=pTotalOld){
+                //printf("alive if \n");
                 Time = double(dlmTimer.Stop())/1e6;
                 Time = round((1./Progress-1.)*Time);
-                ShowTime((long long)(Time), cdummy, 2, true, 5);
+                //printf("alive test start\n");
+                //ShowTime((long long)(Time), cdummy, 2, true, 5);
+                //printf("alive test end\n");
                 if(Notifications>=nAll) printf("\r\033[K          Progress %3d%%, ETA %s",pTotal,cdummy);
                 cout << flush;
                 pTotalOld = pTotal;
             }
+            //printf("alive end if \n");
         }
+        //printf("alive end loop \n");
 
     }//for(unsigned uMPP=0; uMPP<TotalNumberOfBins; uMPP++)
     ComputedWaveFunction = true;
     if(Notifications>=nAll) printf("\r\033[K");
     delete [] cdummy;
+    //printf("alive end \n");
 }
 
 void CATS::ComputeTotWaveFunction(const bool& ReallocateTotWaveFun){
@@ -2469,7 +2481,9 @@ void CATS::ComputeTotWaveFunction(const bool& ReallocateTotWaveFun){
                 if(pTotal!=pTotalOld){
                     Time = double(dlmTimer.Stop())/1e6;
                     Time = round((1./Progress-1.)*Time);
-                    ShowTime((long long)(Time), cdummy, 2, true, 5);
+                    //printf("alive start 2 \n"); 
+                    //ShowTime((long long)(Time), cdummy, 2, true, 5);
+                    //printf("alive end 2 \n"); 
                     if(Notifications>=nAll) printf("\r\033[K          Progress %3d%%, ETA %s",pTotal,cdummy);
                     cout << flush;
                     pTotalOld = pTotal;

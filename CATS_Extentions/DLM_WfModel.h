@@ -33,6 +33,9 @@ DLM_Histo<complex<double>>*** Init_pp_Epelbaum_OLD(const char* CatsFolder, CATS&
 DLM_Histo<complex<double>>*** Init_pp_Epelbaum_OLD(const char* CatsFolder, CATS* Kitty, const int& TYPE);
 
 
+DLM_Histo<complex<double>>*** Init_pp_Norfolk(const char* CatsFolder, CATS& Kitty, const int& TYPE);
+DLM_Histo<complex<double>>*** Init_pp_Norfolk(const char* CatsFolder, CATS* Kitty, const int& TYPE);
+
 DLM_Histo<complex<double>>*** Init_pL_Haidenbauer(const char* InputFolder, CATS& Kitty, const int& TYPE, const int& CUTOFF=600);
 DLM_Histo<complex<double>>*** Init_pL_Haidenbauer(const char* InputFolder, CATS* Kitty, const int& TYPE, const int& CUTOFF=600);
 DLM_Histo<complex<double>>*** Init_pL_Haidenbauer2019(const char* InputFolder, CATS& Kitty, const int& TYPE, const int& CUTOFF=600);
